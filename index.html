@@ -1,0 +1,878 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>CAE C1 Tréner</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: sticky paper-tab navigation on top, one working column (max 980px), exam-sheet details: part labels in mono, lozenge answer letters. */
+:root{
+  --bg:#f2f4f8; --surface:#ffffff; --sunk:#e8ecf3; --ink:#152033; --muted:#566379; --line:#d5dbe6;
+  --accent:#2343c4; --accent-ink:#ffffff; --accent-soft:#e3e8fb;
+  --ok:#17794f; --ok-bg:#dff3e9; --bad:#b83232; --bad-bg:#fbe4e4; --warn:#8a5a00; --warn-bg:#fbefd2;
+  --display:"Bricolage Grotesque","Avenir Next","Segoe UI",sans-serif;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f131a; --surface:#171d27; --sunk:#1f2733; --ink:#e7ebf2; --muted:#9aa7ba; --line:#2c3646;
+  --accent:#8ea4ff; --accent-ink:#0d1220; --accent-soft:#222c4d;
+  --ok:#55c995; --ok-bg:#163427; --bad:#f28484; --bad-bg:#3d1c1f; --warn:#e6b450; --warn-bg:#3a2e12;
+  color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0f131a; --surface:#171d27; --sunk:#1f2733; --ink:#e7ebf2; --muted:#9aa7ba; --line:#2c3646;
+  --accent:#8ea4ff; --accent-ink:#0d1220; --accent-soft:#222c4d;
+  --ok:#55c995; --ok-bg:#163427; --bad:#f28484; --bad-bg:#3d1c1f; --warn:#e6b450; --warn-bg:#3a2e12;
+  color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.15;margin:0}
+h1{font-size:clamp(1.7rem,4.5vw,2.4rem);font-weight:700}
+h2{font-size:1.35rem;font-weight:700}
+h3{font-size:1.05rem;font-weight:500}
+p{margin:0}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-in{max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;align-items:center;gap:16px}
+.brand{font-family:var(--display);font-weight:700;white-space:nowrap;padding-block:12px}
+.brand small{font-family:var(--mono);font-weight:400;font-size:.7rem;color:var(--muted);margin-left:6px;letter-spacing:.04em}
+nav{display:flex;gap:2px;overflow-x:auto;min-width:0;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav a{padding:14px 10px;color:var(--muted);text-decoration:none;font-size:.9rem;font-weight:500;white-space:nowrap;border-bottom:2px solid transparent}
+nav a:hover{color:var(--ink)}
+nav a[aria-current="page"]{color:var(--accent);border-bottom-color:var(--accent)}
+main{max-width:980px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:24px}
+.lead{color:var(--muted);max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.head{display:flex;flex-direction:column;gap:8px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.sp{justify-content:space-between}
+.pill{font-family:var(--mono);font-size:.7rem;padding:2px 8px;border-radius:99px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.pill.acc{background:var(--accent-soft);color:var(--accent)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:500;font-size:.9rem}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.sm{padding:5px 10px;font-size:.8rem}
+.btn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:default}
+/* exam strip */
+.papers{display:flex;gap:4px;height:38px}
+.papers div{border-radius:6px;background:var(--accent-soft);color:var(--accent);font-family:var(--mono);font-size:.72rem;display:flex;align-items:center;justify-content:center;min-width:0;overflow:hidden;white-space:nowrap}
+.papers div:nth-child(2){background:var(--ok-bg);color:var(--ok)}
+.papers div:nth-child(3){background:var(--warn-bg);color:var(--warn)}
+.papers div:nth-child(4){background:var(--bad-bg);color:var(--bad)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.82rem;color:var(--muted)}
+.legend b{color:var(--ink);font-weight:600}
+.scale{display:flex;gap:3px}
+.scale div{padding:8px 6px;border-radius:6px;background:var(--sunk);font-size:.75rem;min-width:0;text-align:center}
+.scale div b{display:block;font-family:var(--mono);font-size:.72rem;font-weight:600}
+.scale .c1{background:var(--accent-soft);color:var(--accent)}
+.stat{display:flex;flex-direction:column;gap:6px}
+.stat b{font-family:var(--display);font-size:1.6rem;font-variant-numeric:tabular-nums}
+.bar{height:6px;border-radius:9px;background:var(--sunk);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:9px}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+.scroll{overflow-x:auto}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:400}
+td.n{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+ul.tight{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:6px}
+ul.tight li{max-width:70ch}
+.en{font-style:italic}
+code,.k{font-family:var(--mono);font-size:.85em;background:var(--sunk);padding:1px 5px;border-radius:4px}
+details.topic{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+details.topic>summary{list-style:none;cursor:pointer;padding:14px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+details.topic>summary::-webkit-details-marker{display:none}
+details.topic>summary .tt{font-family:var(--display);font-weight:500;flex:1 1 220px;min-width:0}
+details.topic>summary .tt small{display:block;font-family:var(--body);font-weight:400;color:var(--muted);font-size:.82rem}
+details.topic[open]>summary{border-bottom:1px solid var(--line)}
+details.topic .body{padding:18px;display:flex;flex-direction:column;gap:16px}
+.q{display:flex;flex-direction:column;gap:8px;padding-top:14px;border-top:1px dashed var(--line)}
+.q:first-of-type{border-top:0;padding-top:0}
+.qt{max-width:70ch}
+.num{font-family:var(--mono);font-size:.75rem;color:var(--muted);margin-right:8px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 12px 6px 6px;cursor:pointer;text-align:left}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.lz{font-family:var(--mono);font-size:.7rem;width:26px;height:18px;border:1.5px solid var(--muted);border-radius:9px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted);flex:none}
+.opt.ok{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.opt.ok .lz{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.opt.bad{background:var(--bad-bg);border-color:var(--bad);color:var(--bad)}
+.opt:disabled{cursor:default}
+.ex{font-size:.88rem;color:var(--muted);border-left:3px solid var(--line);padding-left:10px;max-width:70ch}
+.gapin{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 10px;min-width:0;flex:1 1 200px;max-width:420px}
+.gapin.ok{border-color:var(--ok);background:var(--ok-bg)}
+.gapin.bad{border-color:var(--bad);background:var(--bad-bg)}
+.res{font-size:.88rem}
+.res.ok{color:var(--ok)} .res.bad{color:var(--bad)}
+.kw{font-family:var(--mono);font-weight:600;letter-spacing:.05em;background:var(--accent-soft);color:var(--accent);padding:2px 8px;border-radius:4px}
+.card-fc{border:1px solid var(--line);border-radius:12px;background:var(--bg);min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;text-align:center;cursor:pointer;width:100%}
+.card-fc .f{font-family:var(--display);font-size:1.5rem;font-weight:500}
+.card-fc .b{color:var(--accent);font-size:1.05rem}
+textarea{width:100%;min-height:300px;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:12px;line-height:1.6;resize:vertical}
+.timer{font-family:var(--mono);font-size:1.3rem;font-variant-numeric:tabular-nums;font-weight:600}
+.task{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:14px;max-width:75ch;white-space:pre-line}
+.fb{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:14px;max-width:80ch}
+label.chk{display:flex;gap:8px;align-items:flex-start;font-size:.9rem}
+.note{font-size:.82rem;color:var(--muted);max-width:75ch}
+@media (max-width:560px){ .brand small{display:none} .papers div{font-size:.62rem} }
+</style>
+
+<div class="top"><div class="top-in">
+  <div class="brand">CAE C1 Tréner<small>COMPLETE ADVANCED</small></div>
+  <nav id="nav" aria-label="Sekcie"></nav>
+</div></div>
+<main id="app"></main>
+
+<script>
+/* ===================== DATA ===================== */
+const NAV=[["prehlad","Prehľad"],["cvicenia","Cvičenia"],["skuska","Skúška"],["gramatika","Gramatika"],["use-of-english","Use of English"],["slovnik","Slovná zásoba"],["pisanie","Písanie"],["hovorenie","Hovorenie"],["plan","Plán podľa učebnice"]];
+
+// [id, EN title, SK title, unit, SB page, [points], [[question, [options], correctIdx, explanation]]]
+const G=[
+["past","Verb forms to talk about the past","Minulé časy, used to a would",1,177,[
+ "<b>Past simple</b> – ukončené deje a sled udalostí. <b>Past continuous</b> – dej v pozadí; s <span class='k'>always</span> vyjadruje podráždenie: <span class='en'>He was always borrowing my things.</span>",
+ "<b>Present perfect</b> – obdobie ešte trvá alebo má výsledok dnes (<span class='en'>since 2019, this morning</span> – ak je ešte ráno). <b>Present perfect continuous</b> zdôrazňuje trvanie.",
+ "<b>Past perfect</b> – dej pred iným minulým dejom: <span class='en'>When I arrived, they had eaten.</span> (jedlo už bolo zjedené) vs <span class='en'>…they ate.</span> (až potom).",
+ "<b>used to</b> – minulé zvyky aj stavy; <b>would</b> – iba opakované deje, nie stavy (<s>I would have a dog</s>)."],[
+ ["When Giulia got home, her friends ___ dinner – it was already on the table.",["made","had made","have made","were making"],1,"Večera bola hotová pred jej príchodom → past perfect."],
+ ["I ___ in Lisbon since 2019 and I still love it.",["lived","was living","have been living","had lived"],2,"Dej trvá doteraz + since → present perfect (continuous)."],
+ ["As a child I ___ have a dog called Rex.",["would","used to","was used to","use to"],1,"Stav (have) → len used to; would sa používa iba pre opakované deje."]]],
+["purpose","Expressing purpose, reason and result","Účel, dôvod a výsledok",2,170,[
+ "<b>Účel:</b> <span class='k'>so (that)</span> + veta; <span class='k'>in order to / so as to / to</span> + infinitív (zápor: <span class='k'>so as not to</span>); <span class='k'>with the intention of</span> + -ing.",
+ "<b>Dôvod:</b> <span class='k'>because / since / as</span> + veta; <span class='k'>because of / due to / owing to</span> + podstatné meno alebo -ing; <span class='k'>in case</span> = pre prípad, že.",
+ "<b>Výsledok:</b> <span class='k'>so</span>, <span class='k'>with the result that</span>; na začiatku novej vety <span class='k'>Consequently / Therefore / As a result</span>. <span class='k'>otherwise</span> = lebo inak."],[
+ ["Take an umbrella ___ it rains later.",["so that","in case","otherwise","due to"],1,"in case = pre prípad, že (dáždnik beriem vopred)."],
+ ["All flights were cancelled ___ the fog.",["because","since","owing to","so as to"],2,"Pred podstatným menom: owing to / due to / because of."],
+ ["She whispered ___ wake the baby.",["so as not to","so that not","for not to","in order not"],0,"Záporný účel: so as not to / in order not to + infinitív."]]],
+["nonenot","no, none, not","no, none, not",3,173,[
+ "<b>no</b> + podstatné meno = not any: <span class='en'>There is no evidence.</span>",
+ "<b>none</b> je zámeno – stojí samo alebo s <span class='k'>of</span> + the/my/these/zámeno: <span class='en'>None of the candidates…</span>",
+ "<b>not</b> popiera sloveso, prídavné meno alebo kvantifikátor: <span class='en'>not everyone, not many, not all, not a single…</span>"],[
+ ["___ of the candidates had the right experience.",["No","None","Not","Nobody"],1,"Pred of + skupina → none."],
+ ["There is ___ evidence that the treatment works.",["none","not","no","not any of"],2,"no + podstatné meno."],
+ ["___ everyone agrees with the proposal.",["No","None","Not","Nor"],2,"Pred every/all/many sa používa not."]]],
+["passive","The passive","Trpný rod",3,173,[
+ "Tvar: <span class='k'>be</span> + past participle. Používa sa, keď pôvodca nie je známy alebo dôležitý, a vo formálnom či odbornom štýle (reporty, proposals).",
+ "<b>Reporting passive:</b> <span class='en'>It is said that he is rich.</span> = <span class='en'>He is said to be rich.</span> Pre minulosť: <span class='en'>He is believed to have left.</span> Prebiehajúci dej: <span class='en'>is thought to be living…</span>",
+ "<b>have / get something done</b> – službu vykoná niekto iný: <span class='en'>I had my laptop repaired.</span>"],[
+ ["The suspect is believed ___ the country last week.",["to leave","to have left","having left","that he left"],1,"Skorší dej po reporting passive → to have + past participle."],
+ ["The new bridge ___ at the moment.",["is building","is built","is being built","has built"],2,"Prebiehajúci dej v trpnom rode: is being built."],
+ ["I must ___ before the interview.",["have my suit cleaned","have cleaned my suit","be cleaned my suit","get my suit clean"],0,"have + predmet + past participle = dať si niečo urobiť."]]],
+["certainty","Expressing possibility, probability and certainty","Možnosť, pravdepodobnosť, istota",4,169,[
+ "<b>Možnosť:</b> <span class='k'>may / might / could</span> (konkrétna situácia); <span class='k'>can</span> len pre všeobecnú možnosť: <span class='en'>It can get cold here.</span> Silnejšie: <span class='k'>may well</span>; slabšie: <span class='k'>just might, could conceivably</span>.",
+ "<b>Pravdepodobnosť:</b> <span class='k'>should</span>, <span class='k'>be (highly) likely / unlikely to</span>, <span class='k'>there's every likelihood that…</span>",
+ "<b>Istota:</b> <span class='k'>must</span> (určite áno), <span class='k'>can't / couldn't</span> (určite nie), <span class='k'>be bound to</span>. Minulosť: modal + <span class='k'>have</span> + past participle."],[
+ ["With that much experience, she's ___ to get the job.",["bound","probable","possibly","must"],0,"be bound to = určite sa to stane."],
+ ["He ___ have read the email – he knew nothing about the meeting.",["mustn't","can't","may","should"],1,"Logická nemožnosť v minulosti: can't have + pp (nie mustn't)."],
+ ["It ___ get very cold here in winter.",["can","might well have","must have","is bound"],0,"Všeobecná možnosť → can."]]],
+["inf-ing","Verbs + to infinitive or -ing","Sloveso + infinitív alebo -ing",5,179,[
+ "<b>+ to infinitív:</b> afford, agree, arrange, fail, manage, offer, refuse, tend, threaten. <b>+ -ing:</b> avoid, consider, delay, deny, enjoy, involve, mind, risk, suggest.",
+ "<b>Zmena významu:</b> <span class='en'>remember/forget doing</span> (spomienka) vs <span class='en'>to do</span> (povinnosť); <span class='en'>stop doing</span> (prestať) vs <span class='en'>stop to do</span> (zastaviť sa, aby…); <span class='en'>try doing</span> (experiment) vs <span class='en'>try to do</span> (snaha); <span class='en'>regret doing</span> vs <span class='en'>regret to inform</span>; <span class='en'>mean doing</span> (obnášať) vs <span class='en'>mean to do</span> (mať v úmysle)."],[
+ ["I'll never forget ___ the sea for the first time.",["to see","seeing","see","to have seen"],1,"Spomienka na minulý zážitok → forget + -ing."],
+ ["He stopped ___ a coffee and then drove on.",["buying","to buy","buy","having bought"],1,"stop to do = zastaviť sa za účelom."],
+ ["The job involves ___ abroad several times a year.",["to travel","travel","travelling","to travelling"],2,"involve + -ing."]]],
+["repetition","Avoiding repetition","Ako sa vyhnúť opakovaniu",6,164,[
+ "Zámená a odkazovacie slová: <span class='k'>it, this, that, they</span>; <span class='k'>one / ones</span>; <span class='k'>another, the other, the others</span>; <span class='k'>both, neither, all, none</span>.",
+ "Pomocné sloveso namiesto celej frázy: <span class='en'>Few people have read it, but I have.</span> · <span class='k'>do so</span>: <span class='en'>I asked them to leave and they did so.</span>",
+ "<span class='k'>so / not</span> po think, hope, suppose: <span class='en'>I think so. I hope not.</span> · Samotné <span class='k'>to</span>: <span class='en'>I didn't want to.</span> V eseji je to kľúč k hodnoteniu Organisation."],[
+ ["I've never been skiing, but I'd love ___.",["it","to","so","do"],1,"Namiesto 'to go skiing' stačí to."],
+ ["'Is Ana coming tonight?' 'I think ___.'",["it","that","so","yes"],2,"think / hope / suppose + so."],
+ ["Two of the paintings were sold; ___ are still in the gallery.",["another","the other","others ones","the others"],3,"Zvyšok konkrétnej skupiny → the others."]]],
+["linking","Linking ideas: relative & participle clauses, apposition","Vzťažné a príčasťové vety",7,171,[
+ "<b>Defining</b> (bez čiarok, možno <span class='k'>that</span>, predmetové zámeno možno vynechať) vs <b>non-defining</b> (čiarky, nikdy <span class='k'>that</span>). Komentár k celej vete: <span class='en'>…, which is why I stayed in.</span>",
+ "Formálne: predložka + <span class='k'>whom / which</span>: <span class='en'>the person to whom I spoke</span>.",
+ "<b>Participle clauses</b> (rovnaký podmet!): <span class='en'>Opening the door, I saw…</span> · <span class='en'>Having finished, she left.</span> · trpný význam: <span class='en'>Built in 1889, the tower…</span>",
+ "<b>Apposition:</b> dve menné frázy vedľa seba: <span class='en'>Lisbon, the capital of Portugal, …</span>"],[
+ ["My brother, ___ lives in Oslo, is a pilot.",["that","who","whom","which"],1,"Non-defining veta o osobe → who, nie that."],
+ ["___ the report, she switched off her laptop and went home.",["Finished","Having finished","Being finished","To finish"],1,"Dej pred hlavným dejom → perfect participle."],
+ ["___ in small quantities, dark chocolate is good for you.",["Eating","Having eaten","Eaten","Being eating"],2,"Trpný význam (čokoláda je jedená) → past participle."]]],
+["reported","Reported speech","Nepriama reč",8,174,[
+ "Posun časov o krok do minulosti, zmena zámen a výrazov času (<span class='en'>tomorrow → the next day</span>). V otázkach oznamovací slovosled: <span class='en'>She asked where I lived.</span>",
+ "<b>Vzorce slovies:</b> + to inf: agree, offer, promise, refuse, threaten · + predmet + to inf: advise, remind, urge, warn · + -ing: admit, deny, suggest, recommend · + predložka + -ing: accuse sb of, apologise for, insist on, congratulate sb on."],[
+ ["She asked me where ___.",["did I live","I lived","do I live","lived I"],1,"V nepriamej otázke nie je inverzia."],
+ ["He denied ___ the money.",["to take","taking","that he takes","to have take"],1,"deny + -ing."],
+ ["They warned us ___ in the river.",["not to swim","to not swimming","don't swim","against swim"],0,"warn + predmet + (not) to infinitív."]]],
+["transitive","Transitive verbs","Prechodné a neprechodné slovesá",8,177,[
+ "<b>Prechodné</b> slovesá musia mať predmet (<span class='en'>raise, discuss, enjoy, lay</span>). <b>Neprechodné</b> predmet nemajú a nedajú sa dať do trpného rodu (<span class='en'>rise, arrive, happen, occur, lie</span>).",
+ "Časté chyby: <s>was happened</s>, <s>discuss about</s>. Páry: <span class='en'>raise (sth) / rise</span>, <span class='en'>lay (sth) / lie</span>."],[
+ ["Prices have ___ sharply this year.",["raised","been risen","risen","rose up"],2,"rise je neprechodné: rise – rose – risen."],
+ ["The accident ___ at noon.",["was happened","happened","has been happened","was happening by"],1,"happen nemá trpný rod."],
+ ["Could you ___ the issue at tomorrow's meeting?",["rise","raise","arise","rise up"],1,"raise + predmet."]]],
+["timeclauses","Time clauses","Časové vety",9,176,[
+ "Po <span class='k'>when, as soon as, until, once, before, after, by the time</span> sa pre budúcnosť používa <b>prítomný čas</b>, nie will. Present perfect zdôrazní dokončenie: <span class='en'>Once you have signed…</span>",
+ "Formálna inverzia: <span class='en'>No sooner had I sat down than…</span> · <span class='en'>Hardly had we left when…</span>",
+ "<span class='k'>while / as</span> – súbežné deje; <span class='k'>by the time</span> + past simple → past perfect v hlavnej vete."],[
+ ["I'll call you as soon as I ___ at the hotel.",["will arrive","arrive","would arrive","am arriving"],1,"V časovej vete o budúcnosti prítomný čas."],
+ ["No sooner ___ the door than the phone rang.",["I had closed","had I closed","I closed","did I closed"],1,"No sooner + inverzia s past perfect … than."],
+ ["Once you ___ the form, hand it in at reception.",["will complete","completed","have completed","had completed"],2,"Dokončenie pred ďalším krokom → present perfect."]]],
+["timepreps","Prepositions in time expressions","Predložky času",9,174,[
+ "<span class='k'>at</span> – hodiny, at night, at the weekend, at the moment · <span class='k'>on</span> – dni a dátumy · <span class='k'>in</span> – mesiace, roky, časti dňa, <span class='en'>in two weeks' time</span>.",
+ "<span class='k'>by</span> = najneskôr do; <span class='k'>until</span> = až do (dej trvá); <span class='k'>for</span> + dĺžka; <span class='k'>during</span> + podstatné meno; <span class='k'>within</span> = v rámci; <span class='k'>over</span> the last few years."],[
+ ["The report must be finished ___ Friday at the latest.",["until","by","on to","within"],1,"Termín → by."],
+ ["I lived there ___ three years.",["during","since","for","in"],2,"Dĺžka trvania → for."],
+ ["Her phone rang twice ___ the meeting.",["during","for","while","by"],0,"during + podstatné meno (while + veta)."]]],
+["ability","Expressing ability, possibility and obligation","Schopnosť, možnosť, povinnosť",10,168,[
+ "<b>Schopnosť:</b> can / could / be able to. Pri jednorazovom úspechu v minulosti nie could, ale <span class='k'>was able to / managed to / succeeded in -ing</span>.",
+ "<b>must</b> – pravidlá a osobný pocit povinnosti; <b>have to</b> – vonkajšia povinnosť. <span class='k'>mustn't</span> = zákaz, <span class='k'>don't have to</span> = netreba.",
+ "<span class='k'>needn't have done</span> = urobil som to zbytočne; <span class='k'>didn't need to do</span> = nebolo treba (a zvyčajne som to neurobil)."],[
+ ["The door was locked, but we ___ get in through a window.",["could","managed to","can","succeeded to"],1,"Konkrétny úspech v minulosti → managed to / were able to."],
+ ["You ___ pay now – you can settle the bill when you leave.",["mustn't","don't have to","haven't to","can't"],1,"Chýbajúca povinnosť → don't have to."],
+ ["I ___ a taxi – the meeting was postponed anyway.",["didn't need take","needn't have taken","mustn't have taken","needn't take"],1,"Urobil som to, ale nebolo to potrebné → needn't have + pp."]]],
+["conditionals","Conditionals","Podmienkové vety",11,165,[
+ "<b>1.</b> if + present → will · <b>2.</b> if + past → would (nereálna prítomnosť) · <b>3.</b> if + past perfect → would have + pp (nereálna minulosť).",
+ "<b>Mixed:</b> <span class='en'>If I hadn't met her (minulosť), we wouldn't be married now (prítomnosť).</span>",
+ "Spojky: <span class='k'>unless, provided (that), as long as, otherwise</span>. Formálna inverzia bez if: <span class='en'>Had I known… / Were I to… / Should you need…</span>",
+ "Zdvorilé žiadosti do listov: <span class='en'>I'd be grateful if you could…</span>"],[
+ ["If I ___ that job in 2020, I'd be living in Tokyo now.",["took","had taken","would take","have taken"],1,"Mixed conditional: minulá podmienka, súčasný dôsledok."],
+ ["___ you need any further help, please do not hesitate to contact me.",["Would","Had","Should","Were"],2,"Should you need = If you need (formálne)."],
+ ["We'll have lunch in the garden ___ it rains.",["unless","provided","otherwise","if only"],0,"unless = if … not."]]],
+["location","at, in and on to express location","at, in, on pre miesto",11,163,[
+ "<span class='k'>at</span> – miesto ako bod alebo udalosť: at the airport, at a wedding, at number 11 · <span class='k'>in</span> – priestor alebo oblasť: in a flat, in the car, in hospital, in the world.",
+ "<span class='k'>on</span> – povrch a línia: on the wall, on the coast, on the motorway, on the fifth floor, on the left; doprava okrem áut: on the train; technológie: on television, on the website; on an island, on a farm."],[
+ ["Our office is ___ the fifth floor.",["at","in","on","to"],2,"Poschodie → on."],
+ ["I'll meet you ___ the airport when you land.",["at","in","on","by"],0,"Miesto ako bod stretnutia → at."],
+ ["It's the tallest building ___ the world.",["on","at","of","in"],3,"in the world."]]],
+["articles","Nouns and articles","Členy",12,163,[
+ "<b>a/an</b> – prvá zmienka, jeden z mnohých, povolanie: <span class='en'>She's an engineer.</span>",
+ "<b>the</b> – je jasné, o čom hovoríme; jedinečné veci; hudobné nástroje; skupiny ľudí: <span class='en'>the rich, the unemployed</span>; geografia: the coast, the mountains.",
+ "<b>Bez člena</b> – množné a nepočítateľné mená vo všeobecnom význame (<span class='en'>Pollution is a problem.</span>) a inštitúcie podľa účelu: go to university, in hospital, in prison, at work."],[
+ ["She works as ___ engineer for a car manufacturer.",["a","an","the","–"],1,"Povolanie → a/an; engineer sa začína samohláskou."],
+ ["___ unemployed need more support from the state.",["An","–","The","Some of"],2,"the + prídavné meno = skupina ľudí."],
+ ["He was sent to ___ prison for five years.",["a","the","–","one"],2,"Inštitúcia v jej primárnej funkcii → bez člena."]]],
+["countable","Countable and uncountable nouns","Počítateľné a nepočítateľné mená",3,166,[
+ "V angličtine sú <b>nepočítateľné</b>: advice, accommodation, equipment, furniture, homework, information, knowledge, luggage, news, research, traffic, travel, damage. Žiadne a/an, žiadne množné číslo; kus = <span class='en'>a piece of advice</span>.",
+ "<span class='k'>much / little / less</span> + nepočítateľné; <span class='k'>many / few / fewer</span> + množné číslo.",
+ "Niektoré mená majú oba významy: <span class='en'>experience</span> (skúsenosti) vs <span class='en'>an experience</span> (zážitok); <span class='en'>business, time, room, paper</span>."],[
+ ["Can you give me ___ about studying abroad?",["an advice","some advices","some advice","few advice"],2,"advice je nepočítateľné."],
+ ["We have very ___ information about the new system.",["few","little","a few","many"],1,"Nepočítateľné → little."],
+ ["Working in Berlin was ___ I'll never forget.",["experience","an experience","the experiences","some experience"],1,"Konkrétny zážitok → počítateľné an experience."]]],
+["depprep","Dependent prepositions","Väzby s predložkami",4,167,[
+ "Predložku sa treba učiť spolu so slovom. Po predložke nasleduje podstatné meno alebo <b>-ing</b>.",
+ "Slovesá: account for, accuse sb of, apologise for, approve of, cope with, differ from, insist on, object to, prevent sb from, rely on, result in, succeed in.",
+ "Prídavné mená: capable of, dependent on, different from, involved in, prejudiced against, relevant to, suitable for. Podstatné mená: attention to, belief in, confidence in, reputation for.",
+ "Celý balíček nájdeš v sekcii <a href='#slovnik'>Slovná zásoba</a>."],[
+ ["They accused him ___ lying to the committee.",["for","of","with","about"],1,"accuse somebody of + -ing."],
+ ["Nothing could prevent the fire ___ spreading.",["from","of","to","against"],0,"prevent sb/sth from + -ing."],
+ ["The hotel has a reputation ___ excellent service.",["of","in","for","with"],2,"reputation for."]]],
+["comparison","The language of comparison","Porovnávanie",13,171,[
+ "<span class='k'>the + komparatív, the + komparatív</span>: <span class='en'>The more I read, the less I understand.</span>",
+ "Zosilnenie komparatívu: <span class='k'>far, a lot, a great deal, even</span>; zoslabenie: <span class='k'>slightly, a bit</span>. Nikdy <s>very better</s>.",
+ "<span class='k'>as … as</span>, <span class='k'>no better than</span>, <span class='k'>less</span> + nepočítateľné / <span class='k'>fewer</span> + množné číslo; <span class='en'>the worst weather imaginable</span>. V Speaking Part 2 porovnávaj fotky práve takto."],[
+ ["The earlier we leave, ___ we'll get there.",["sooner","the sooner","the soonest","more soon"],1,"the … the …"],
+ ["There are ___ students in the class this year.",["less","fewer","lesser","little"],1,"Množné číslo → fewer."],
+ ["This model is ___ more reliable than the old one.",["very","far","so","too"],1,"Komparatív zosilňuje far / a lot / much."]]],
+["contrast","Ways of contrasting ideas","Vyjadrenie kontrastu",13,180,[
+ "<span class='k'>although / even though / though</span> + veta · <span class='k'>despite / in spite of</span> + podstatné meno, -ing alebo <span class='en'>the fact that</span>.",
+ "<span class='k'>whereas / while</span> – porovnanie dvoch rozdielnych faktov v jednej vete. <span class='k'>However / Nevertheless</span> – začínajú novú vetu, nespájajú dve vety čiarkou."],[
+ ["___ the heavy rain, the match went ahead.",["Although","Despite","However","Whereas"],1,"Pred podstatným menom → despite."],
+ ["___ he had studied hard, he failed the exam.",["Despite","In spite","Although","Nevertheless"],2,"Pred vetou → although."],
+ ["Tom loves big cities, ___ his sister prefers the countryside.",["whereas","however","despite","nevertheless"],0,"Kontrast dvoch faktov v jednej vete → whereas."]]],
+["comment","Comment adverbials and intensifying adverbs","Komentujúce a zosilňujúce príslovky",14,165,[
+ "<b>Istota:</b> undoubtedly, in all likelihood, without a doubt. <b>Postoj:</b> frankly, personally, surprisingly, quite honestly, generally speaking, to my surprise. Oddeľujú sa čiarkou.",
+ "<b>Zosilnenie:</b> very / extremely + stupňovateľné (tired, good); <span class='k'>absolutely / utterly / completely</span> + extrémne (exhausted, brilliant, ridiculous).",
+ "Kolokácie: highly unlikely, deeply concerned, bitterly disappointed, perfectly clear, strongly recommend."],[
+ ["The performance was ___ brilliant.",["very","absolutely","highly","fairly"],1,"brilliant je extrémne prídavné meno → absolutely."],
+ ["___, I don't think the plan will work.",["Quite honestly","In honest","Honest speaking","To honesty"],0,"Quite honestly = úprimne povedané."],
+ ["She was ___ disappointed with her result.",["highly","utterly brilliant","bitterly","strongly"],2,"Kolokácia: bitterly disappointed."]]],
+["cleft","Cleft sentences for emphasis","Dôrazové (cleft) vety",14,165,[
+ "<span class='k'>What</span> + veta + is/was: <span class='en'>What I really enjoy is cooking.</span> · So slovesom do: <span class='en'>What they did was (to) advertise online.</span>",
+ "<span class='k'>All</span> + veta: <span class='en'>All I need is a holiday.</span>",
+ "<span class='k'>It is/was … that/who</span>: <span class='en'>It was in 2012 that they left Poland.</span> Časté v Part 4."],[
+ ["___ I need right now is a long holiday.",["That","Which","What","It"],2,"What-clause + is."],
+ ["It was Maria ___ solved the problem.",["what","who","which","whom"],1,"It was + osoba + who/that."],
+ ["All he did ___ complain about the food.",["is to","was","has","did"],1,"All + veta + was + (to) infinitív."]]],
+["wordform","Word formation","Tvorenie slov",12,181,[
+ "<b>Záporné predpony:</b> dis-, in-, un-; il- (pred l), im- (pred m, p), ir- (pred r). Ďalšie: mis- (zle), re- (znova), over- (príliš), under- (nedostatočne), pre-/post-, pro-/anti-, inter-.",
+ "<b>Sloveso → podstatné meno:</b> -ment, -ation/-ition/-sion, -ance/-ence, -al, -er/-or, -ant, -ee (trainee).",
+ "<b>Prídavné → podstatné:</b> -ness, -ity, -ance/-ence. <b>Podstatné → prídavné:</b> -y, -ful, -less, -ous, -al, -ic, -ish. <b>Podstatné → podstatné:</b> -ism, -ist, -ship.",
+ "V Part 3 vždy over: slovný druh, zápor, množné číslo, pravopis (<span class='en'>-able → -ability</span>)."],[
+ ["Opak slova <span class='en'>rational</span>:",["unrational","inrational","irrational","disrational"],2,"Pred r → ir-."],
+ ["Podstatné meno od <span class='en'>diverse</span>:",["diverseness","diversity","diversion","diversement"],1,"-ity: diversity (diversion znamená obchádzku)."],
+ ["Osoba, ktorú niekto zaúča (<span class='en'>train</span>):",["trainer","trainee","trainist","trainant"],1,"-ee = ten, komu sa dej deje."]]]
+];
+
+// Use of English practice (original items in exam format)
+const U1=[
+ ["The new manager has ___ a real difference to staff morale.",["made","done","given","had"],0,"make a difference"],
+ ["He ___ the impression of being rather shy.",["made","gave","did","put"],1,"give the impression of"],
+ ["Scientists are ___ research into the causes of the disease.",["making","getting","doing","giving"],2,"do research"],
+ ["It took me months to ___ used to the climate.",["be","get","make","turn"],1,"get used to"],
+ ["Frankly, there is only a ___ chance of success.",["thin","narrow","slim","light"],2,"a slim chance"],
+ ["We were held up by ___ traffic on the ring road.",["strong","heavy","thick","hard"],1,"heavy traffic"],
+ ["On no ___ must this door be left unlocked.",["account","reason","way","case"],0,"on no account"],
+ ["I'm writing on ___ of my colleagues, who were unable to attend.",["account","part","place","behalf"],3,"on behalf of"],
+ ["I simply can't ___ to buy a new car this year.",["pay","spend","afford","cost"],2,"can't afford to"],
+ ["She ___ to me that she had never read the report.",["told","admitted","spoke","talked"],1,"admit to sb that"],
+ ["The festival is the biggest cultural ___ of the year.",["activity","action","programme","event"],3,"event = organizovaná udalosť"],
+ ["On one ___, he arrived three hours late.",["occasion","opportunity","chance","possibility"],0,"on one occasion"],
+ ["It's vital to ___ out who is responsible.",["learn","know","find","discover"],2,"find out"],
+ ["The scheme ___ young people with valuable work experience.",["offers","gives","delivers","provides"],3,"provide sb with sth"],
+ ["The meeting has been ___ off until next week.",["called","put","taken","set"],1,"put off = odložiť"]
+];
+const U2=[
+ ["Hardly had we sat down ___ the fire alarm went off.",["when"],"Hardly … when"],
+ ["___ having lived in France for years, he speaks very little French.",["despite"],"Despite + -ing"],
+ ["It was not ___ I got home that I realised my wallet was missing.",["until"],"It was not until … that"],
+ ["She was made ___ rewrite the whole report.",["to"],"V trpnom rode: be made to do"],
+ ["There's no point ___ complaining now.",["in"],"no point in + -ing"],
+ ["___ no circumstances should you open this door.",["under"],"Under no circumstances + inverzia"],
+ ["He's one of the few people on ___ I can always rely.",["whom"],"predložka + whom"],
+ ["I'd rather you ___ not mention this to anyone.",["did"],"would rather + podmet + past"],
+ ["The more you practise, ___ better you'll get.",["the"],"the … the …"],
+ ["She spoke so quietly ___ hardly anyone could hear her.",["that"],"so … that"],
+ ["We set off early so ___ to avoid the traffic.",["as"],"so as to"],
+ ["What I like most about the job ___ the variety.",["is"],"cleft sentence: What … is"],
+ ["By the time we arrived, the film ___ already started.",["had"],"by the time + past → past perfect"],
+ ["___ it not been for your help, I would never have finished.",["had"],"Had it not been for = If it hadn't been for"]
+];
+const U3=[
+ ["His ___ to detail is remarkable.","ATTEND",["attention"]],
+ ["The results were completely ___ ; nobody had predicted them.","EXPECT",["unexpected"]],
+ ["There is a growing ___ of the problem among young people.","AWARE",["awareness"]],
+ ["The instructions were so ___ that we assembled it the wrong way round.","LEAD",["misleading"]],
+ ["She showed great ___ in the face of repeated setbacks.","RESILIENT",["resilience"]],
+ ["Passengers had to put up with an ___ long delay.","ACCEPT",["unacceptably"]],
+ ["The company's rapid ___ into Asia surprised its competitors.","EXPAND",["expansion"]],
+ ["It is ___ to drive without insurance.","LEGAL",["illegal"]],
+ ["His constant ___ in class led to a meeting with his parents.","BEHAVE",["misbehaviour","misbehavior"]],
+ ["The rainforest is known for the ___ of its wildlife.","DIVERSE",["diversity"]],
+ ["Many nurses feel ___ and overworked.","PAY",["underpaid"]],
+ ["Graduates face a highly ___ job market.","COMPETE",["competitive"]],
+ ["The ___ of the new law has been delayed until next year.","IMPLEMENT",["implementation"]],
+ ["She has an ___ knowledge of medieval history.","EXTEND",["extensive"]],
+ ["The team lost its main ___ deal after the scandal.","SPONSOR",["sponsorship"]],
+ ["The news left him completely ___ .","SPEECH",["speechless"]]
+];
+const U4=[
+ ["I regret not studying harder at school.","WISH","I ___ harder at school.",["wish i had studied","wish i'd studied"]],
+ ["It's possible that she forgot about the meeting.","MAY","She ___ about the meeting.",["may have forgotten"]],
+ ["People say the company is losing money.","SAID","The company ___ money.",["is said to be losing"]],
+ ["The show started immediately after we arrived.","SOONER","No ___ the show started.",["sooner had we arrived than"]],
+ ["I didn't go out because it was raining.","BEEN","If it ___ , I would have gone out.",["had not been raining","hadn't been raining"]],
+ ["'I'm sorry I broke the vase,' said Tom.","APOLOGISED","Tom ___ the vase.",["apologised for breaking","apologised for having broken"]],
+ ["She started working here ten years ago.","BEEN","She ___ ten years.",["has been working here for"]],
+ ["It wasn't necessary for you to bring any food, but you did.","NEED","You ___ any food.",["need not have brought","needn't have brought"]],
+ ["The only thing I want is a quiet weekend.","ALL","___ a quiet weekend.",["all i want is"]],
+ ["Although he was tired, he kept working.","SPITE","He kept working ___ tired.",["in spite of being","in spite of feeling"]],
+ ["I'm sure he didn't see us.","HAVE","He ___ us.",["can't have seen","cannot have seen","couldn't have seen","could not have seen"]],
+ ["We left early because we didn't want to get stuck in traffic.","AS","We left early ___ get stuck in traffic.",["so as not to"]],
+ ["As she gets older, she becomes more confident.","THE","The older she gets, ___ becomes.",["the more confident she"]],
+ ["He will probably pass the exam.","LIKELY","He ___ the exam.",["is likely to pass"]]
+];
+const UOE=[
+ {id:"u1",t:"Part 1",n:"Multiple-choice cloze",d:"Vyber slovo, ktoré sa hodí do medzery. Testuje kolokácie, frázové slovesá a slová s podobným významom.",tip:"Na skúške: 8 medzier v jednom texte, 1 bod za každú. Prečítaj si aj slová za medzerou – často rozhoduje predložka."},
+ {id:"u2",t:"Part 2",n:"Open cloze",d:"Doplň jedno slovo. Väčšinou gramatické slová: predložky, členy, spojky, pomocné slovesá, zámená.",tip:"Na skúške: 8 medzier, vždy presne jedno slovo. Skrátené tvary (don't) sa nepočítajú ako jedno slovo."},
+ {id:"u3",t:"Part 3",n:"Word formation",d:"Zo slova napísaného veľkými písmenami vytvor tvar, ktorý sa hodí do vety.",tip:"Na skúške: 8 medzier. Skontroluj slovný druh, zápornú predponu a množné číslo."},
+ {id:"u4",t:"Part 4",n:"Key word transformations",d:"Dokonči druhú vetu tak, aby mala rovnaký význam. Použi 3 až 6 slov vrátane kľúčového slova, ktoré nesmieš zmeniť.",tip:"Na skúške: 6 viet, až 2 body za každú. Skrátený tvar (hadn't) sa počíta ako dve slová."}
+];
+
+// Vocabulary decks
+const D=[
+ {id:"colloc",t:"Kolokácie: make, do, get, give",u:"Unit 1 a 2",type:"verb",opts:["make","do","get","give"],cards:[
+  ["a decision","make"],["an effort","make"],["a mistake","make"],["progress","make"],["a difference","make"],["a complaint","make"],["a suggestion","make"],["a contribution","make"],["sense","make"],["an excuse","make"],
+  ["research","do"],["business","do"],["damage","do"],["harm","do"],["your best","do"],["somebody a favour","do"],["a degree","do"],["the housework","do"],
+  ["a job","get"],["permission","get"],["a promotion","get"],["used to something","get"],["the sack","get"],["in touch","get"],
+  ["a presentation","give"],["advice","give"],["an example","give"],["somebody a hand","give"],["priority to something","give"],["rise to something","give"],["a lecture","give"]]},
+ {id:"vprep",t:"Sloveso + predložka",u:"Unit 4 a 12",type:"prep",cards:[
+  ["account","for"],["accuse somebody","of"],["apologise","for"],["approve","of"],["believe","in"],["concentrate","on"],["consist","of"],["cope","with"],["depend","on"],["differ","from"],["insure something","against"],["invest","in"],["object","to"],["participate","in"],["prevent somebody","from"],["rely","on"],["resort","to"],["result","in"],["suffer","from"],["distinguish something","from"],["devote time","to"],["blame somebody","for"],["provide somebody","with"],["protest","against"]]},
+ {id:"aprep",t:"Prídavné a podstatné meno + predložka",u:"Unit 4 a 13",type:"prep",cards:[
+  ["capable","of"],["proud","of"],["tired","of"],["afraid","of"],["independent","of"],["interested","in"],["involved","in"],["dependent","on"],["relevant","to"],["kind","to"],["suited","to"],["suitable","for"],["prejudiced","against"],["delighted","with"],["anxious","about"],
+  ["attention","to"],["belief","in"],["confidence","in"],["trust","in"],["capacity","for"],["reputation","for"],["criticism","of"],["experience","of"]]},
+ {id:"complex",t:"Zložené predložky",u:"Unit 7",type:"pair",cards:[
+  ["in spite of","napriek"],["on behalf of","v mene (niekoho)"],["in addition to","okrem toho, navyše k"],["by means of","prostredníctvom"],["in place of","namiesto"],["on account of","z dôvodu"],["with regard to","čo sa týka"],["in terms of","z hľadiska"],["as a result of","v dôsledku"],["in favour of","v prospech, za"],["in accordance with","v súlade s"],["at the expense of","na úkor"]]},
+ {id:"phrasal",t:"Frázové slovesá",u:"Unit 11",type:"pair",cards:[
+  ["put off","odložiť na neskôr"],["come up with","prísť s nápadom"],["turn down","odmietnuť ponuku"],["carry out","vykonať, uskutočniť"],["set up","založiť (firmu)"],["bring about","spôsobiť (zmenu)"],["look into","preskúmať, prešetriť"],["put up with","znášať, tolerovať"],["run out of","minúť zásoby"],["take on","prijať zamestnanca / úlohu"],["get across","zrozumiteľne vysvetliť"],["fall through","stroskotať (o pláne)"],["rule out","vylúčiť možnosť"],["cut down on","obmedziť spotrebu"],["live up to","splniť očakávania"],["catch up on","dohnať zameškané"]]},
+ {id:"talk",t:"'Talking' verbs a peniaze",u:"Unit 7 a 8",type:"pair",cards:[
+  ["admit (doing)","priznať"],["deny (doing)","poprieť"],["claim (that)","tvrdiť (bez dôkazu)"],["insist on (doing)","trvať na"],["urge somebody to","naliehavo vyzvať"],["remind somebody to","pripomenúť"],["mention (that)","spomenúť"],["point out (that)","upozorniť na fakt"],
+  ["afford","môcť si dovoliť"],["owe","dlhovať"],["a refund","vrátenie peňazí"],["a fee","poplatok za službu"],["a fare","cestovné"],["a fine","pokuta"],["a debt","dlh"],["a bargain","výhodná kúpa"]]},
+ {id:"idiom",t:"Idiómy",u:"Unit 5",type:"pair",cards:[
+  ["pull somebody's leg","robiť si z niekoho žarty"],["a piece of cake","hračka, veľmi ľahké"],["once in a blue moon","veľmi zriedka"],["hit the nail on the head","trafiť klinec po hlavičke"],["the last straw","posledná kvapka"],["get cold feet","dostať strach, cúvnuť"],["be over the moon","byť nadšený"],["keep an eye on","dávať pozor na"],["out of the blue","z čista jasna"],["a close call","tesný únik"]]},
+ {id:"confuse",t:"Ľahko zameniteľné slová",u:"Unit 9, 10 a 14",type:"gap",notes:[
+  "<b>action</b> – čin, zásah · <b>activity</b> – činnosť, ktorú robíš (často pre zábavu) · <b>event</b> – organizovaná udalosť · <b>programme</b> – plán aktivít alebo relácia.",
+  "<b>chance</b> – šanca, aj náhoda (a chance of + -ing, a chance to do) · <b>occasion</b> – konkrétna príležitosť, keď sa niečo deje (on one occasion) · <b>opportunity</b> – príležitosť niečo urobiť (opportunity to do) · <b>possibility</b> – možnosť, že niečo nastane (possibility of / that; nie <s>possibility to do</s>).",
+  "<b>learn</b> – získať vedomosť alebo zručnosť · <b>find out</b> – zistiť informáciu · <b>know</b> – už ju mať.",
+  "<b>provide</b> somebody with something · <b>offer</b> – ponúknuť (môže byť odmietnuté) · <b>give</b> – dať."],
+  cards:[
+  ["The charity runs a ___ of workshops for teenagers.",["programme","action","event","activity"],0],
+  ["The government must take ___ to reduce pollution.",["activity","action","event","programme"],1],
+  ["Swimming is my favourite leisure ___.",["event","action","activity","programme"],2],
+  ["The wedding was the social ___ of the summer.",["action","programme","activity","event"],3],
+  ["The course gave me the ___ to work with experts.",["possibility","occasion","opportunity","event"],2],
+  ["Is there any ___ that the decision will be reversed?",["possibility","opportunity","occasion","action"],0],
+  ["I only wear a suit on special ___.",["chances","possibilities","opportunities","occasions"],3],
+  ["I met my old teacher completely by ___.",["chance","occasion","opportunity","possibility"],0],
+  ["I was shocked to ___ out that the shop had closed.",["learn","know","find","get"],2],
+  ["How long have you ___ about the problem?",["known","found out","learned out","met"],0],
+  ["She ___ to drive me to the station, but I preferred to walk.",["provided","gave","offered","supplied"],2],
+  ["The hostel ___ guests with clean towels.",["offers","gives","provides","presents"],2]]}
+];
+const PREPS=["of","to","for","on","in","with","from","about","at","against"];
+
+// Writing
+const W=[
+ {id:"essay",t:"Essay",part:"Part 1 – povinná",reg:"Formálny, neosobný štýl",str:["Úvod: predstav tému a povedz, čo budeš rozoberať.","Odsek 1: prvý z dvoch vybraných bodov, s dôvodmi a príkladom.","Odsek 2: druhý bod, porovnaj ho s prvým.","Záver: ktorý bod je dôležitejší a prečo. Žiadne nové argumenty."],
+  ph:["It is generally accepted that…","It has been suggested that…","Probably the most effective measure would be…","In theory this seems sensible, but in practice…","This is based on the assumption that…, whereas in fact…","In view of the above arguments, I believe…"],
+  tip:"Musíš pokryť dva z troch bodov z poznámok. Názory z diskusie môžeš použiť, ale vlastnými slovami."},
+ {id:"letter",t:"Letter / Email",part:"Part 2",reg:"Podľa adresáta: priateľovi neformálne, inštitúcii formálne",str:["Oslovenie a dôvod písania.","Odseky podľa bodov zo zadania, jeden bod na odsek.","Záver: čo očakávaš alebo ponúkaš.","Rozlúčka: Yours sincerely (poznáš meno) / Yours faithfully (Dear Sir or Madam) / Best wishes."],
+  ph:["I am writing to express my dissatisfaction with…","I would be grateful if you could…","I look forward to hearing from you.","It was great to hear from you.","If I were you, I'd…","Do let me know how you get on."],
+  tip:"Register drž jednotný v celom texte. V sťažnosti buď vecný a navrhni riešenie."},
+ {id:"proposal",t:"Proposal",part:"Part 2",reg:"Formálny, presvedčivý; nadpisy sekcií",str:["Introduction: účel návrhu.","Current situation: čo je teraz a prečo to nestačí.","Suggestions: konkrétne návrhy s výhodami.","Conclusion / Recommendation: zhrň, prečo to schváliť."],
+  ph:["The purpose of this proposal is to…","At present, …","I would suggest / recommend that the council should…","This would enable residents to…","Were this to be implemented, …","I am confident that these measures would…"],
+  tip:"Proposal sa pozerá do budúcnosti – veľa modálnych slovies a podmienkových viet."},
+ {id:"report",t:"Report",part:"Part 2",reg:"Formálny, vecný; nadpisy sekcií",str:["Introduction: cieľ reportu a odkiaľ máš informácie.","Sekcie s nadpismi podľa bodov zo zadania (čo fungovalo, čo nie).","Recommendations: jasné odporúčania."],
+  ph:["The aim of this report is to outline…","Overall, the programme was felt to be…","A number of participants pointed out that…","The main drawback was…","In light of these findings, I would recommend…"],
+  tip:"Report hodnotí to, čo sa už stalo. Trpný rod a neosobné konštrukcie znejú prirodzene."},
+ {id:"review",t:"Review",part:"Part 2",reg:"Polo-formálny až živý, podľa média",str:["Pútavý úvod: čo recenzuješ a prečo.","Stručný opis (nie prerozprávanie deja).","Hodnotenie: silné a slabé stránky s príkladmi.","Odporúčanie: komu sa to bude páčiť."],
+  ph:["What sets this series apart is…","It is, without a doubt, one of the most…","Where it falls short is…","I was particularly struck by…","I would thoroughly recommend it to anyone who…"],
+  tip:"Väčšina slov má patriť hodnoteniu, nie opisu. Hodia sa zosilňujúce príslovky a cleft vety."}
+];
+const TASKS=[
+ ["essay","Your class has attended a panel discussion on how cities can reduce traffic congestion. You have made the notes below.\n\nMethods of reducing congestion:\n• investment in public transport\n• charges for driving in the city centre\n• encouraging remote working\n\nSome opinions expressed in the discussion:\n\"People won't leave their cars at home unless buses are reliable.\"\n\"Charges hit the poorest drivers hardest.\"\n\"Not every job can be done from home.\"\n\nWrite an essay discussing two of the methods in your notes. You should explain which method would be more effective, giving reasons in support of your answer."],
+ ["report","You have just completed a six-month internship at an international company. The programme coordinator has asked you for a report. You should describe what you gained from the internship, explain any problems you had and recommend improvements for future interns.\n\nWrite your report."],
+ ["proposal","Your town council has announced that it has money available to improve facilities for young people. You decide to send in a proposal. Describe the current facilities, suggest two improvements and explain how they would benefit young people in the town.\n\nWrite your proposal."],
+ ["review","An international arts website has asked readers to send in reviews of a documentary series that changed the way they think about an issue. Say what the series is about, evaluate how well it presents the issue and explain who you would recommend it to.\n\nWrite your review."],
+ ["letter","An English-speaking friend is thinking of moving to your country to work for a year and has asked for your advice on finding accommodation, meeting people and learning the language.\n\nWrite your letter."],
+ ["letter","You recently took an intensive language course which did not match its advertisement: the classes were larger than promised and several lessons were cancelled. Write to the director of the school explaining what went wrong and saying what you expect the school to do.\n\nWrite your letter."]
+];
+const CHECK=["Odpovedal som na všetky body zo zadania.","Register sedí k adresátovi a je jednotný.","Text má odseky a spojovacie výrazy.","Použil som aspoň tri zložitejšie štruktúry (inverzia, cleft, participle clause, trpný rod).","Neopakujem slová zo zadania – parafrázujem.","Rozsah je 220 až 260 slov.","Skontroloval som svoje typické chyby."];
+
+// Speaking
+const SP=[
+ {t:"Part 1",n:"Interview",time:"2 min",d:"Skúšajúci sa pýta každého zvlášť na prácu či štúdium, záujmy, minulé skúsenosti a plány.",tips:["Odpovedaj priamo a pridaj dôvod alebo detail.","Neuč sa odpovede naspamäť; priprav si slovnú zásobu k témam."],ph:["What I really love about … is …","I've been working at … since …","I'd certainly consider …","I tend to prefer …, mainly because …","That's a difficult question to answer."]},
+ {t:"Part 2",n:"Long turn",time:"4 min spolu · 1 min ty",d:"Dostaneš tri fotky, porovnáš dve z nich a odpovieš na dve otázky. Potom krátko (asi 30 s) reaguješ na fotky partnera.",tips:["Fotky neopisuj – porovnávaj a špekuluj.","Odpovedz na obe otázky vytlačené nad fotkami.","Hovor celú minútu, kým skúšajúci nepovie Thank you."],ph:["Both pictures show …, whereas …","In this one …, while in the other …","He might be / could be …","She looks as if she's …","I'd say this is because …"]},
+ {t:"Part 3",n:"Collaborative task",time:"4 min · 2 min diskusia + 1 min rozhodnutie",d:"Spolu s partnerom diskutujete o otázke a piatich možnostiach, potom sa snažíte dohodnúť.",tips:["Máš 15 sekúnd na prečítanie úlohy.","Dôležitá je hĺbka diskusie, nie prebrať všetkých päť bodov.","Pýtaj sa partnera na názor a reaguj na to, čo povie."],ph:["Shall we start with …?","What's your view on …?","I see what you mean, but …","That's a good point. On top of that, …","So, are we agreed that …?"]},
+ {t:"Part 4",n:"Discussion",time:"5 min",d:"Skúšajúci kladie všeobecnejšie otázky k téme z Part 3.",tips:["Rozviň odpoveď: názor, dôvod, príklad.","Môžeš nadviazať na partnera alebo s ním nesúhlasiť."],ph:["As far as I'm concerned, …","It depends to a large extent on …","There's no doubt in my mind that …","I'm in two minds about this.","To take an example, …"]}
+];
+const SPQ={
+ p1:["What do you enjoy most about the place where you live?","How do you usually spend your weekends?","What would you like to be doing in five years' time?","Is there a skill you would love to learn? Why?","How important is it for you to keep fit?","What kind of films or series do you find worth watching?","Do you prefer to plan things or to be spontaneous?","What is your happiest memory of school?","How do you think you will use English in the future?","Which country would you most like to visit, and why?"],
+ p2:["Tri fotky: prednáška v aule · online kurz doma · individuálna hodina s lektorom.\nCompare two of the situations and say what the advantages of learning in these ways might be, and how effective each is likely to be.","Tri fotky: horolezec na stene · chirurg pri operácii · pilot v kokpite.\nCompare two of the situations and say why concentration is important here, and how the people might be feeling.","Tri fotky: rodinná oslava · tímový míting v kancelárii · dobrovoľníci čistiaci pláž.\nCompare two of the situations and say what the people might gain from being together, and how lasting the benefits could be.","Tri fotky: jazda na bicykli do práce · preplnené metro · zdieľané auto.\nCompare two of the ways of commuting and say why people might choose them, and what difficulties they might have."],
+ p3:["How can these things help people settle into a new country?\n• learning the language\n• joining local clubs\n• finding a job\n• keeping in touch with home\n• trying local food\n\nPotom: Which of these is the most important in the first month?","What makes these jobs attractive to young people?\n• good salary\n• flexible hours\n• opportunities to travel\n• job security\n• creative freedom\n\nPotom: Which factor will matter most in twenty years' time?","How do these things affect the way people get their news?\n• social media\n• television\n• podcasts\n• printed newspapers\n• friends and family\n\nPotom: Which source is the most trustworthy?"],
+ p4:["Some people say you can only really learn a language by living abroad. What do you think?","Should employers be responsible for the well-being of their staff?","Do you think people today read less than they used to? Why?","How far do you agree that technology makes us less sociable?","Is it better to specialise early or to keep your options open?","What can governments do to encourage a healthier lifestyle?"]
+};
+
+// Units: [n,title,SB page,WB page,grammar,vocabulary,Reading&UoE,Writing,Listening,Speaking]
+const UN=[
+ [1,"Our people",8,4,"Verb forms to talk about the past","Collocations with give and make","Part 8, Part 4","Essay","Part 4","Part 1"],
+ [2,"Mastering languages",18,9,"Expressing purpose, reason and result","Collocations with make, get and do","Part 6, Part 3","Report","Part 1","Part 2"],
+ [3,"All in the mind",30,14,"no, none, not; The passive","Countable / uncountable nouns; Formal or informal?","Part 5, Part 2","Essay","Part 2","Part 3"],
+ [4,"Just the job!",40,19,"Possibility, probability and certainty","Dependent prepositions; Adjective–noun collocations","Part 8, Part 1","Report","Part 2","Part 4"],
+ [5,"Dramatic events",52,24,"Verbs + to infinitive or -ing","Idiomatic language","Part 7, Part 4","Proposal","Part 1","Part 2"],
+ [6,"Picture yourself",62,29,"Avoiding repetition","Adjective–noun collocations (2)","Part 5, Part 2","Review","Part 3","Part 3"],
+ [7,"Leisure and entertainment",74,34,"Linking ideas: relative and participle clauses","Complex prepositions; Money words","Part 7, Part 1","Informal letter","Part 4","Part 4"],
+ [8,"Media matters",84,39,"Reported speech; Transitive verbs","'Talking' verbs","Part 6, Part 3","Proposal","Part 3","Part 3"],
+ [9,"At top speed",96,44,"Time clauses; Prepositions in time expressions","action, activity, event, programme","Part 7, Part 4","Essay","Part 1","Part 2"],
+ [10,"A lifelong process",106,49,"Ability, possibility and obligation","chance, occasion, opportunity, possibility","Part 8, Part 1","Report","Part 2","Part 4"],
+ [11,"Being somewhere else",118,54,"Conditionals; at, in, on for location","Phrasal verbs","Part 5, Part 2","Review","Part 1","Part 1"],
+ [12,"The living world",128,59,"Nouns and articles","Word formation; Prepositions following verbs","Part 7, Part 3","Proposal","Part 2","Part 3"],
+ [13,"Health and lifestyle",140,64,"Ways of contrasting ideas; The language of comparison","Prepositions following adjectives","Part 8, Part 3","Letter of complaint","Part 3","Part 2"],
+ [14,"Moving abroad",150,69,"Comment adverbials; Cleft sentences for emphasis","learn, find out, know; provide, offer, give","Part 6, Part 4","Essay","Part 4","Part 4"]
+];
+
+/* ===================== STATE ===================== */
+const LS="cae-c1-trener-v1";
+let S={ans:{},txt:{},known:{},units:{},draft:"",task:0,wtype:"essay",chk:{},uoe:"u1",pc:"mix",pn:10,sess:null,aitype:"p1",aitopic:"past"};
+try{Object.assign(S,JSON.parse(localStorage.getItem(LS)||"{}"))}catch(e){}
+function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
+const app=document.getElementById("app");
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const norm=s=>String(s).toLowerCase().replace(/[’‘`]/g,"'").replace(/[.,!?;]/g,"").replace(/\s+/g," ").trim();
+function prog(prefix){let a=0,c=0;for(const m of [S.ans,S.txt])for(const k in m)if(k.startsWith(prefix)){a++;if(m[k].ok)c++}return{a,c}}
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const gapHTML=s=>s.replace("___","<span class='k'>&nbsp;…&nbsp;</span>");
+
+/* ===================== COMPONENTS ===================== */
+function mc(key,num,q,opts,a,ex){
+  const r=S.ans[key],done=!!r;
+  return `<div class="q" data-mc="${key}" data-a="${a}"><p class="qt"><span class="num">${num}</span>${gapHTML(q)}</p><div class="opts">${opts.map((o,i)=>`<button class="opt ${done?(i===a?"ok":(i===r.c?"bad":"")):""}" data-i="${i}" ${done?"disabled":""}><span class="lz">${"ABCD"[i]}</span>${o}</button>`).join("")}</div><p class="ex" ${done?"":"hidden"}>${ex||""}</p></div>`;
+}
+function tc(key,num,html,answers,note){
+  const r=S.txt[key];
+  return `<div class="q" data-tc="${key}" data-ans="${esc(answers.join("|"))}" data-note="${esc(note||"")}"><div class="qt"><span class="num">${num}</span>${html}</div><div class="row"><input class="gapin ${r?(r.ok?"ok":"bad"):""}" id="in-${key.replace(/\./g,"-")}" value="${r?esc(r.v):""}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Tvoja odpoveď"><button class="btn sm" data-check>Skontrolovať</button></div><p class="res ${r?(r.ok?"ok":"bad"):""}" ${r?"":"hidden"}>${r?resText(r.ok,answers,note):""}</p></div>`;
+}
+function resText(ok,answers,note){return (ok?"Správne. ":"Správna odpoveď: <b>"+esc(answers[0])+"</b>. ")+(note?"<span style='color:var(--muted)'>"+note+"</span>":"")}
+function badge(prefix,total){const p=prog(prefix);return `<span class="pill ${p.a>=total?"ok":""}" data-prog="${prefix}" data-total="${total}">${p.c}/${total}</span>`}
+function refreshBadges(){$$("[data-prog]").forEach(b=>{const t=+b.dataset.total,p=prog(b.dataset.prog);b.textContent=p.c+"/"+t;b.classList.toggle("ok",p.a>=t)})}
+
+// timers
+const timers={};
+function timerHTML(id,sec,label){return `<div class="row" data-timer="${id}" data-sec="${sec}"><span class="timer" id="t-${id}">${fmt(sec)}</span><button class="btn sm" data-tstart>Štart</button><button class="btn sm" data-treset>Reset</button>${label?`<span class="note">${label}</span>`:""}</div>`}
+function fmt(s){return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")}
+function stopTimers(){for(const k in timers){clearInterval(timers[k].h);delete timers[k]}}
+
+/* ===================== VIEWS ===================== */
+const V={};
+
+V.prehlad=()=>{
+  const gTot=G.reduce((n,t)=>n+t[6].length,0),g=prog("g.");
+  const uTot=U1.length+U2.length+U3.length+U4.length,u=prog("u");
+  const vTot=D.filter(d=>d.type!=="gap").reduce((n,d)=>n+d.cards.length,0),v=Object.keys(S.known).length;
+  const un=Object.values(S.units).filter(Boolean).length;
+  const st=(lab,a,t,href,sub)=>`<a class="panel stat" href="#${href}" style="text-decoration:none;color:inherit"><span class="eyebrow">${lab}</span><b>${a}<span style="font-size:1rem;color:var(--muted)"> / ${t}</span></b><div class="bar"><i style="width:${t?Math.round(a/t*100):0}%"></i></div><span class="note">${sub}</span></a>`;
+  return `<div class="head"><span class="eyebrow">C1 Advanced · formát platný od roku 2015</span><h1>Príprava na CAE podľa Complete Advanced</h1><p class="lead">Gramatika, slovná zásoba a typy úloh sú usporiadané podľa 14 lekcií učebnice a pracovného zošita. Cvičenia sú nové, napísané vo formáte skúšky, takže si nimi precvičíš látku z knihy bez toho, aby si poznal odpovede.</p><div class="row"><a class="btn pri" href="#cvicenia" style="text-decoration:none">Spustiť cvičenie</a><span class="note">náhodný tréning z banky alebo úplne nové úlohy od Clauda</span></div></div>
+  <div class="grid">${st("Gramatika",g.c,gTot,"gramatika",g.a+" zodpovedaných otázok z 23 tém")}${st("Use of English",u.c,uTot,"use-of-english",u.a+" vyskúšaných úloh v Part 1 až 4")}${st("Slovná zásoba",v,vTot,"slovnik","kartičiek označených ako „viem“")}${st("Lekcie učebnice",un,14,"plan","prebratých lekcií")}</div>
+  <div class="panel"><div class="row sp"><h2>Skúška v mierke času</h2><span class="pill">spolu asi 3 h 55 min</span></div>
+   <div class="papers"><div style="flex:90">Reading &amp; UoE · 90</div><div style="flex:90">Writing · 90</div><div style="flex:40">Listening · 40</div><div style="flex:15">15</div></div>
+   <div class="legend"><span><b>Reading and Use of English</b> 8 častí, 56 otázok</span><span><b>Writing</b> 2 texty po 220–260 slov</span><span><b>Listening</b> 4 časti, 30 otázok</span><span><b>Speaking</b> 15 min vo dvojici</span></div>
+   <a class="btn" href="#skuska" style="align-self:flex-start;text-decoration:none">Pozrieť všetky časti</a></div>
+  <div class="panel"><h2>Cambridge English Scale</h2>
+   <div class="scale"><div style="flex:20"><b>160–179</b>úroveň B2</div><div class="c1" style="flex:13"><b>180–192</b>C1 · Grade C</div><div class="c1" style="flex:7"><b>193–199</b>Grade B</div><div style="flex:11"><b>200–210</b>Grade A · C2</div></div>
+   <p class="note">Na certifikát C1 potrebuješ celkovo aspoň 180 bodov. Výsledok je priemer piatich zručností: Reading, Use of English, Writing, Listening a Speaking, takže slabšiu časť vie vyvážiť silnejšia.</p></div>
+  <div class="panel"><h2>Ako s tým pracovať</h2><ul class="tight"><li>V sekcii <a href="#plan">Plán podľa učebnice</a> si odškrtávaj lekcie. Pri každej vidíš strany v Student's Book aj vo Workbooku.</li><li>Po lekcii si otvor jej tému v <a href="#gramatika">Gramatike</a> a urob krátky test.</li><li><a href="#use-of-english">Use of English</a> trénuj po malých dávkach každý deň; Part 4 je bodovo najvýnosnejší.</li><li>Raz do týždňa napíš jeden text v sekcii <a href="#pisanie">Písanie</a> na čas (45 minút).</li></ul><p class="note">Pokrok sa ukladá iba v tomto prehliadači.</p></div>`;
+};
+
+V.skuska=()=>{
+  const row=(p,n,q,f)=>`<tr><td class="n">${p}</td><td><b>${n}</b></td><td class="n">${q}</td><td>${f}</td></tr>`;
+  const tbl=(rows)=>`<div class="scroll"><table><thead><tr><th>Časť</th><th>Typ úlohy</th><th>Otázky</th><th>Čo sa testuje a ako na to</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return `<div class="head"><span class="eyebrow">Formát skúšky</span><h1>Štyri papiere, osemnásť častí</h1><p class="lead">Prehľad vychádza z časti „Cambridge English: Advanced content and overview“ na strane 7 učebnice.</p></div>
+  <div class="panel"><div class="row sp"><h2>Reading and Use of English</h2><span class="pill acc">1 h 30 min</span></div>${tbl(
+   row("Part 1","Multiple-choice cloze","8","Kolokácie, frázové slovesá, slová s blízkym významom. 1 bod za otázku.")+
+   row("Part 2","Open cloze","8","Gramatické slová: predložky, spojky, členy, pomocné slovesá. Vždy jedno slovo.")+
+   row("Part 3","Word formation","8","Predpony a prípony, slovný druh, zápor, množné číslo.")+
+   row("Part 4","Key word transformations","6","3–6 slov vrátane kľúčového. Až 2 body za vetu – bod je aj za polovicu.")+
+   row("Part 5","Multiple choice","6","Dlhý text, 4 možnosti. Detail, postoj, tón, zámer autora. 2 body.")+
+   row("Part 6","Cross-text multiple matching","4","Štyri krátke texty, porovnávaš názory autorov. 2 body.")+
+   row("Part 7","Gapped text","6","Vkladáš 6 odsekov, jeden je navyše. Sleduj odkazovacie slová. 2 body.")+
+   row("Part 8","Multiple matching","10","Hľadáš, v ktorom texte je daná informácia. Čítaj najprv otázky. 1 bod."))}
+   <p class="note">Časti 1 až 4 si môžeš precvičiť v sekcii <a href="#use-of-english">Use of English</a>. Dlhé texty k častiam 5 až 8 sú v každej lekcii učebnice.</p></div>
+  <div class="panel"><div class="row sp"><h2>Writing</h2><span class="pill acc">1 h 30 min</span></div>${tbl(
+   row("Part 1","Essay (povinná)","1","220–260 slov. Rozoberieš dva z troch bodov a povieš, ktorý je dôležitejší. Asi 45 minút.")+
+   row("Part 2","Letter / email, proposal, report alebo review","1 z 3","220–260 slov. Vyber si žáner, ktorý ti sedí; zadanie má najviac 80 slov. Asi 45 minút."))}
+   <p class="note">Hodnotia sa štyri kritériá, každé 0–5: Content, Communicative Achievement, Organisation, Language.</p></div>
+  <div class="panel"><div class="row sp"><h2>Listening</h2><span class="pill acc">asi 40 min</span></div>${tbl(
+   row("Part 1","Tri krátke rozhovory, multiple choice","6","Postoj, zámer, súhlas medzi hovoriacimi.")+
+   row("Part 2","Monológ, sentence completion","8","Dopĺňaš presné slová, ktoré počuješ. Pozor na pravopis.")+
+   row("Part 3","Rozhovor, multiple choice","6","Názory a pocity hovoriacich; otázky idú v poradí nahrávky.")+
+   row("Part 4","Päť monológov, multiple matching","10","Dve úlohy naraz, 8 možností v každej. Počúvaj celkový zmysel, nie jednotlivé slová."))}
+   <p class="note">Každú nahrávku počuješ dvakrát. Čas pred nahrávkou využi na prečítanie otázok a podčiarknutie kľúčových slov.</p></div>
+  <div class="panel"><div class="row sp"><h2>Speaking</h2><span class="pill acc">15 min vo dvojici</span></div>${tbl(SP.map(p=>row(p.t,p.n,p.time,p.d)).join(""))}
+   <p class="note">V miestnosti sú dvaja skúšajúci: jeden vedie rozhovor, druhý iba hodnotí. Tréning je v sekcii <a href="#hovorenie">Hovorenie</a>.</p></div>`;
+};
+
+V.gramatika=()=>`<div class="head"><span class="eyebrow">Language reference · strany 162–183</span><h1>Gramatika</h1><p class="lead">Všetkých 23 tém z gramatického prehľadu učebnice. Každá má krátke zhrnutie po slovensky a tri kontrolné otázky.</p></div>
+ ${G.map(t=>`<details class="topic" id="g-${t[0]}"><summary><span class="tt">${t[1]}<small>${t[2]}</small></span><span class="pill">Unit ${t[3]}</span><span class="pill">SB s. ${t[4]}</span>${badge("g."+t[0]+".",t[6].length)}</summary><div class="body"><ul class="tight">${t[5].map(p=>`<li>${p}</li>`).join("")}</ul><div>${t[6].map((q,i)=>mc("g."+t[0]+"."+i,i+1,q[0],q[1],q[2],q[3])).join("")}</div><div><button class="btn sm" data-reset="g.${t[0]}.">Vymazať odpovede</button></div></div></details>`).join("")}`;
+
+V["use-of-english"]=()=>{
+  const p=UOE.find(x=>x.id===S.uoe)||UOE[0];
+  let items="";
+  if(p.id==="u1")items=U1.map((q,i)=>mc("u1."+i,i+1,q[0],q[1],q[2],"Kolokácia: <b>"+q[3]+"</b>")).join("");
+  if(p.id==="u2")items=U2.map((q,i)=>tc("u2."+i,i+1,gapHTML(q[0]),q[1],q[2])).join("");
+  if(p.id==="u3")items=U3.map((q,i)=>tc("u3."+i,i+1,gapHTML(q[0])+` <span class="kw">${q[1]}</span>`,q[2])).join("");
+  if(p.id==="u4")items=U4.map((q,i)=>tc("u4."+i,i+1,`<p>${q[0]}</p><p style="margin:6px 0"><span class="kw">${q[1]}</span></p><p>${gapHTML(q[2])}</p>`,q[3])).join("");
+  const tot={u1:U1,u2:U2,u3:U3,u4:U4}[p.id].length;
+  return `<div class="head"><span class="eyebrow">Reading and Use of English · časti 1–4</span><h1>Use of English</h1><p class="lead">Úlohy sú nové, ale stavajú na kolokáciách a štruktúrach z učebnice. Na skúške sú Part 1 až 3 súvislé texty; tu sú rozdelené na samostatné vety, aby sa dali trénovať po kúskoch.</p></div>
+  <div class="row">${UOE.map(x=>`<button class="btn" data-uoe="${x.id}" aria-pressed="${x.id===p.id}">${x.t} · ${x.n}</button>`).join("")}</div>
+  <div class="panel"><div class="row sp"><h2>${p.t}: ${p.n}</h2>${badge(p.id+".",tot)}</div><p class="lead">${p.d}</p><p class="note">${p.tip}</p><div>${items}</div><div><button class="btn sm" data-reset="${p.id}.">Začať odznova</button></div></div>`;
+};
+
+let deckId=null,fc={i:0,flip:false},quiz=null;
+V.slovnik=()=>{
+  const list=D.map(d=>{const k=d.type==="gap"?null:d.cards.filter((_,i)=>S.known[d.id+"."+i]).length;return `<button class="panel" data-deck="${d.id}" style="text-align:left;cursor:pointer;${deckId===d.id?"border-color:var(--accent)":""}"><span class="eyebrow">${d.u}</span><h3>${d.t}</h3><span class="row"><span class="pill">${d.cards.length} ${d.type==="gap"?"viet":"kartičiek"}</span>${k!==null?`<span class="pill ${k===d.cards.length?"ok":""}">viem ${k}</span>`:""}</span></button>`}).join("");
+  return `<div class="head"><span class="eyebrow">Vocabulary · podľa lekcií</span><h1>Slovná zásoba</h1><p class="lead">Balíčky kopírujú slovníkové časti lekcií: kolokácie, predložkové väzby, zložené predložky, frázové slovesá a slová, ktoré sa ľahko zamieňajú. Vyber balíček a zvoľ si kartičky, kvíz s možnosťami alebo písanie odpovedí, pri ktorom slovo doplníš sám a stránka ho skontroluje.</p></div>
+  <div class="grid">${list}</div><div id="deck">${deckId?deckHTML():""}</div>`;
+};
+function cardFace(d,c){
+  if(d.type==="verb")return{f:"___ "+c[0],b:c[1]+" "+c[0]};
+  if(d.type==="prep")return{f:c[0]+" ___",b:c[0]+" "+c[1]};
+  return{f:c[0],b:c[1]};
+}
+function deckHTML(){
+  const d=D.find(x=>x.id===deckId);if(!d)return"";
+  let body="";
+  if(typing){
+    const n=typing.qs.length;
+    if(typing.pos>=n)body=`<p><b>Hotovo: ${typing.score} z ${n} správne.</b></p><div class="row"><button class="btn pri" data-typing>Ešte raz</button><button class="btn" data-fcmode>Späť na balíček</button></div>`;
+    else{const q=typing.qs[typing.pos],r=typing.res;
+      body=`<span class="eyebrow">Úloha ${typing.pos+1} z ${n} · správne ${typing.score}</span>
+      <p class="qt" style="font-size:1.15rem">${q.sk?`Napíš po anglicky: <b>${esc(q.q)}</b>`:gapHTML(esc(q.q))}</p>
+      <div class="row"><input id="tin" class="gapin ${r?(r.ok?"ok":"bad"):""}" value="${r?esc(r.v):""}" ${r?"disabled":""} autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Tvoja odpoveď" placeholder="${q.sk?"anglický výraz":"chýbajúce slovo"}">${r?`<button class="btn pri" data-tnext>Ďalej</button>`:`<button class="btn pri" data-tcheck>Skontrolovať</button><button class="btn" data-thint>Nápoveď</button>`}</div>
+      ${typing.hint&&!r?`<p class="note">Začína sa na „${esc(q.h[0])}“ a má ${q.h.length} znakov.</p>`:""}
+      ${r?`<p class="res ${r.ok?"ok":"bad"}">${r.ok?"Správne: ":"Správna odpoveď: "}<b>${esc(q.full)}</b></p>`:""}
+      <div class="row"><button class="btn sm" data-fcmode>Ukončiť</button></div>`}
+  }else if(quiz){
+    if(quiz.pos>=quiz.qs.length)body=`<p><b>Hotovo: ${quiz.score} z ${quiz.qs.length}.</b></p><div class="row"><button class="btn pri" data-quiz>Ešte raz</button><button class="btn" data-fcmode>Späť na kartičky</button></div>`;
+    else{const q=quiz.qs[quiz.pos];body=`<span class="eyebrow">Otázka ${quiz.pos+1} z ${quiz.qs.length} · skóre ${quiz.score}</span><div class="q" data-qz><p class="qt" style="font-size:1.1rem">${gapHTML(esc(q.q))}</p><div class="opts">${q.o.map((o,i)=>`<button class="opt ${quiz.ch!==null?(i===q.a?"ok":(i===quiz.ch?"bad":"")):""}" data-qi="${i}" ${quiz.ch!==null?"disabled":""}><span class="lz">${"ABCD"[i]}</span>${esc(o)}</button>`).join("")}</div></div><div class="row"><button class="btn pri" data-qnext ${quiz.ch===null?"disabled":""}>Ďalej</button>${d.type!=="gap"?`<button class="btn" data-fcmode>Späť na kartičky</button>`:""}</div>`}
+  }else if(d.type==="gap"){
+    body=`<ul class="tight">${d.notes.map(n=>`<li>${n}</li>`).join("")}</ul><div class="row"><button class="btn pri" data-typing>Písať odpovede</button><button class="btn" data-quiz>Kvíz s možnosťami</button></div>`;
+  }else{
+    const c=d.cards[fc.i],f=cardFace(d,c),known=!!S.known[d.id+"."+fc.i];
+    body=`<button class="card-fc" data-flip aria-label="Otočiť kartičku"><span class="eyebrow">${fc.i+1} / ${d.cards.length}${known?" · viem":""}</span><span class="f">${esc(f.f)}</span>${fc.flip?`<span class="b">${esc(f.b)}</span>`:`<span class="note">klikni pre odpoveď</span>`}</button>
+    <div class="row"><button class="btn" data-fprev>Späť</button><button class="btn" data-fknow="0">Ešte nie</button><button class="btn pri" data-fknow="1">Viem</button><span class="row" style="margin-left:auto"><button class="btn pri" data-typing>Písať odpovede</button><button class="btn" data-quiz>Kvíz s možnosťami</button></span></div>`;
+  }
+  return `<div class="panel"><div class="row sp"><h2>${d.t}</h2><span class="pill">${d.u}</span></div>${body}</div>`;
+}
+let typing=null;
+function ansVariants(s){
+  const v=new Set([norm(s.replace(/\([^)]*\)/g,"")),norm(s.replace(/[()]/g,""))]);
+  for(const x of [...v]){v.add(x.replace(/^(a|an|the) /,""));v.add(x.replace(/somebody/g,"sb"));v.add(x.replace(/somebody/g,"someone"));v.add(x.replace(/something/g,"sth"))}
+  return [...v].filter(Boolean);
+}
+function makeTyping(d){
+  let qs;
+  if(d.type==="gap")qs=d.cards.map(c=>{const w=c[1][c[2]];return{q:c[0],ans:[norm(w)],h:w,full:c[0].replace("___",w)}});
+  else if(d.type==="verb")qs=d.cards.map((c,i)=>({q:"___ "+c[0],ans:[c[1],norm(c[1]+" "+c[0])],h:c[1],full:c[1]+" "+c[0],key:d.id+"."+i}));
+  else if(d.type==="prep")qs=d.cards.map((c,i)=>({q:c[0]+" ___",ans:[c[1],norm(c[0]+" "+c[1])],h:c[1],full:c[0]+" "+c[1],key:d.id+"."+i}));
+  else qs=d.cards.map((c,i)=>{const a=ansVariants(c[0]);return{q:c[1],sk:true,ans:a,h:a[0],full:c[0],key:d.id+"."+i}});
+  return{qs:shuffle(qs),pos:0,score:0,res:null,hint:false};
+}
+function typingCheck(){
+  if(!typing||typing.res)return;const inp=$("#tin"),q=typing.qs[typing.pos];if(!inp||!inp.value.trim())return;
+  const ok=q.ans.includes(norm(inp.value));typing.res={ok,v:inp.value};
+  if(ok){typing.score++;if(q.key){S.known[q.key]=1;save()}}
+  $("#deck").innerHTML=deckHTML();const b=$("[data-tnext]");if(b)b.focus();
+}
+function typingNext(){if(!typing)return;typing.pos++;typing.res=null;typing.hint=false;$("#deck").innerHTML=deckHTML();const i=$("#tin");if(i)i.focus()}
+function makeQuiz(d,all){
+  let qs;
+  if(d.type==="gap")qs=d.cards.map(c=>({q:c[0],o:c[1],a:c[2]}));
+  else if(d.type==="verb")qs=d.cards.map(c=>({q:"___ "+c[0],o:d.opts,a:d.opts.indexOf(c[1])}));
+  else if(d.type==="prep")qs=d.cards.map(c=>{const o=shuffle([c[1],...shuffle(PREPS.filter(p=>p!==c[1])).slice(0,3)]);return{q:c[0]+" ___",o,a:o.indexOf(c[1])}});
+  else qs=d.cards.map(c=>{const o=shuffle([c[0],...shuffle(d.cards.filter(x=>x!==c).map(x=>x[0])).slice(0,3)]);return{q:"„"+c[1]+"“",o,a:o.indexOf(c[0])}});
+  return{qs:shuffle(qs).slice(0,all?999:10),pos:0,score:0,ch:null};
+}
+
+/* ---------- Cvičenia: tréning z banky a nové úlohy od Clauda ---------- */
+let ttsFn=null;
+const PC=[["mix","Mix všetkého"],["gram","Gramatika"],["u1","Part 1"],["u2","Part 2"],["u3","Part 3"],["u4","Part 4"],["vocab","Slovná zásoba"]];
+const AIT=[["p1","Use of English Part 1 · multiple-choice cloze"],["p2","Use of English Part 2 · open cloze"],["p3","Use of English Part 3 · word formation"],["p4","Use of English Part 4 · key word transformations"],["gram","Gramatika · vybraná téma"],["vocab","Slovná zásoba · kolokácie a frázové slovesá"],["read","Reading · text s otázkami"],["listen","Listening · nahrávka s otázkami"]];
+function bankItems(cat){
+  const out=[],add=(c,f)=>{if(cat==="mix"||cat===c)f()};
+  add("gram",()=>G.forEach(t=>t[6].forEach(q=>out.push({k:"mc",q:q[0],o:q[1],a:q[2],ex:q[3],tag:t[1]}))));
+  add("u1",()=>U1.forEach(q=>out.push({k:"mc",q:q[0],o:q[1],a:q[2],ex:"Kolokácia: <b>"+q[3]+"</b>",tag:"Part 1"})));
+  add("u2",()=>U2.forEach(q=>out.push({k:"tx",html:gapHTML(q[0]),ans:q[1],ex:q[2],tag:"Part 2"})));
+  add("u3",()=>U3.forEach(q=>out.push({k:"tx",html:gapHTML(q[0])+` <span class="kw">${q[1]}</span>`,ans:q[2],ex:"",tag:"Part 3"})));
+  add("u4",()=>U4.forEach(q=>out.push({k:"tx",html:p4HTML(q[0],q[1],q[2]),ans:q[3],ex:"",tag:"Part 4"})));
+  add("vocab",()=>D.forEach(d=>makeQuiz(d,true).qs.forEach(q=>out.push({k:"mc",q:esc(q.q),o:q.o.map(esc),a:q.a,ex:"",tag:d.t}))));
+  return out;
+}
+function p4HTML(a,k,b){return `<p>${a}</p><p style="margin:6px 0"><span class="kw">${k}</span></p><p>${gapHTML(b)}</p>`}
+function clearX(){for(const m of [S.ans,S.txt])for(const k in m)if(k.startsWith("x."))delete m[k]}
+function startSession(sess){clearX();S.sess=sess;save();if(ttsFn)try{ttsFn.stop()}catch(e){}render(true);const el=$("#sess");if(el)el.scrollIntoView({behavior:"smooth",block:"start"})}
+function startBank(cat,n){
+  const items=shuffle(bankItems(cat)).slice(0,n);
+  startSession({title:"Tréning: "+PC.find(p=>p[0]===cat)[1],items,re:{src:"bank",cat,n}});
+}
+function sessHTML(){
+  const s=S.sess;if(!s)return"";
+  const tag=it=>it.tag?`<span class="pill" style="margin-right:8px">${it.tag}</span>`:"";
+  const items=s.items.map((it,i)=>it.k==="mc"?mc("x."+i,i+1,tag(it)+it.q,it.o,it.a,it.ex):tc("x."+i,i+1,tag(it)+it.html,it.ans,it.ex)).join("");
+  let top="";
+  if(s.script)top=`<div class="row"><button class="btn pri" data-play>Prehrať nahrávku</button><button class="btn" data-stopplay>Zastaviť</button><button class="btn" data-script>Zobraziť prepis</button></div><p class="note" id="playstat">Na skúške počuješ každú nahrávku dvakrát. Najprv si prečítaj otázky.</p><div class="task" id="script" hidden>${s.script}</div>`;
+  else if(s.passage)top=`<div class="task">${s.passage}</div>`;
+  return `<div class="panel"><div class="row sp"><h2>${s.title}</h2>${badge("x.",s.items.length)}</div>${top}<div>${items}</div>${s.multi?`<p class="note">Pri transformáciách môže byť správnych viac formulácií. Ak sa tvoja odpoveď líši len drobnosťou, porovnaj ju so vzorovou.</p>`:""}<div class="row"><button class="btn pri" data-again>Ďalšie také cvičenie</button><button class="btn" data-reset="x.">Vymazať odpovede</button><button class="btn" data-closesess>Zavrieť</button></div></div>`;
+}
+V.cvicenia=()=>{
+  const types=AIT.filter(t=>t[0]!=="listen"||ttsFn);
+  if(!types.some(t=>t[0]===S.aitype))S.aitype="p1";
+  return `<div class="head"><span class="eyebrow">Tréning kedykoľvek</span><h1>Cvičenia</h1><p class="lead">Vyber si, čo chceš precvičiť, a odpovedaj priamo tu. Úlohy z banky sa miešajú pri každom spustení; Claude ti navyše vie kedykoľvek napísať úplne nové.</p></div>
+  <div class="panel"><h2>Rýchly tréning z banky</h2><p class="lead">Náhodný výber z úloh na tejto stránke, zakaždým v inom poradí.</p>
+   <div class="row">${PC.map(p=>`<button class="btn" data-pc="${p[0]}" aria-pressed="${p[0]===S.pc}">${p[1]}</button>`).join("")}</div>
+   <div class="row"><span class="eyebrow">Počet úloh</span>${[5,10,20].map(n=>`<button class="btn sm" data-pn="${n}" aria-pressed="${n===S.pn}">${n}</button>`).join("")}<button class="btn pri" data-startbank style="margin-left:auto">Spustiť tréning</button></div></div>
+  <div class="panel"><h2>Nové cvičenie od Clauda</h2><p class="lead">Claude zakaždým napíše nové úlohy vo formáte skúšky na úrovni C1, takže sa cvičenia neminú.</p>
+   <div class="row"><select id="aitype" class="gapin" aria-label="Typ cvičenia">${types.map(t=>`<option value="${t[0]}" ${t[0]===S.aitype?"selected":""}>${t[1]}</option>`).join("")}</select>${S.aitype==="gram"?`<select id="aitopic" class="gapin" aria-label="Gramatická téma">${G.map(t=>`<option value="${t[0]}" ${t[0]===S.aitopic?"selected":""}>${t[1]}</option>`).join("")}</select>`:""}<button class="btn pri" data-startai ${sampleFn?"":"disabled"}>Vytvoriť cvičenie</button></div>
+   <p class="note" id="ainote" ${sampleFn?"hidden":""}>Generovanie funguje, keď je stránka otvorená na claude.ai a povolíš jej pýtať sa Clauda.</p><p class="note" id="aistat" hidden></p></div>
+  <div id="sess">${sessHTML()}</div>`;
+};
+const AISPEC={
+ p1:n=>[`Write ${n} separate sentences for Part 1 (multiple-choice cloze). Each tests a collocation, phrasal verb, fixed phrase or words with similar meanings. Exactly one option is correct.`,`{"items":[{"q":"sentence with ___ for the gap","options":["a","b","c","d"],"answer":0,"explanation":"..."}]}`],
+ p2:n=>[`Write ${n} separate sentences for Part 2 (open cloze). Each gap needs exactly ONE grammatical word (preposition, article, conjunction, auxiliary, pronoun, relative). List every acceptable word.`,`{"items":[{"q":"sentence with ___ for the gap","answers":["word"],"explanation":"..."}]}`],
+ p3:n=>[`Write ${n} separate sentences for Part 3 (word formation). Give the stem word in capitals; the answer needs a prefix and/or suffix.`,`{"items":[{"q":"sentence with ___ for the gap","stem":"STEM","answers":["derivedword"],"explanation":"..."}]}`],
+ p4:n=>[`Write ${n} Part 4 key word transformations. The gap must be filled with 3 to 6 words including the key word unchanged. In "answers" list every acceptable version in lowercase, both contracted and uncontracted.`,`{"items":[{"first":"original sentence","key":"KEYWORD","second":"second sentence with ___ for the gap","answers":["acceptable answer"],"explanation":"..."}]}`],
+ gram:(n,t)=>[`Write ${n} multiple-choice grammar questions that test this C1 grammar area: "${t}". Use different sub-points of the area. Exactly one option is correct.`,`{"items":[{"q":"sentence with ___ for the gap","options":["a","b","c","d"],"answer":0,"explanation":"..."}]}`],
+ vocab:n=>[`Write ${n} multiple-choice vocabulary questions at C1 level: collocations with make/do/get/give, dependent prepositions, phrasal verbs, complex prepositions and idioms. Exactly one option is correct.`,`{"items":[{"q":"sentence with ___ for the gap","options":["a","b","c","d"],"answer":0,"explanation":"..."}]}`],
+ read:()=>[`Write an original article of about 380 words in the style of Reading Part 5, then 5 multiple-choice questions about detail, opinion, attitude, implication and purpose. Separate paragraphs with a blank line.`,`{"title":"...","passage":"...","items":[{"q":"question","options":["a","b","c","d"],"answer":0,"explanation":"..."}]}`],
+ listen:()=>[`Write a script of about 230 words for a listening recording: one speaker giving a talk, in natural spoken English. Then write 5 multiple-choice questions in the order the information is heard; the options must paraphrase, not repeat, the script.`,`{"title":"...","script":"...","items":[{"q":"question","options":["a","b","c","d"],"answer":0,"explanation":"..."}]}`]
+};
+async function genAI(type,topic){
+  const btn=$("[data-startai]"),stat=$("#aistat");if(!sampleFn)return;
+  if(btn)btn.disabled=true;if(stat){stat.hidden=false;stat.textContent="Claude píše cvičenie. Trvá to asi 10 až 30 sekúnd."}
+  const theme=UN[Math.floor(Math.random()*UN.length)][1],g=G.find(t=>t[0]===topic);
+  const [task,shape]=AISPEC[type](8,g?g[1]:"");
+  const prompt=`You are an item writer for the Cambridge C1 Advanced (CAE) exam. ${task}\nContext theme for variety: "${theme}" (variation seed ${Math.floor(Math.random()*100000)}).\nLanguage level: C1. Vary the position of the correct answer. Write each "explanation" in Slovak, at most 20 words.\nReply with JSON only, exactly in this shape:\n${shape}`;
+  try{
+    let data=await sampleFn.json(prompt,{cache:false});
+    if(typeof data==="string")data=JSON.parse(data);
+    const items=[];
+    for(const it of (data&&data.items)||[]){
+      const ex=esc(it.explanation||"");
+      if(Array.isArray(it.options)){const a=+it.answer;if(it.options.length===4&&a>=0&&a<=3&&it.q)items.push({k:"mc",q:esc(it.q),o:it.options.map(esc),a,ex})}
+      else if(Array.isArray(it.answers)){const ans=it.answers.map(norm).filter(Boolean);if(!ans.length)continue;
+        if(type==="p4"&&it.first&&it.second&&it.key)items.push({k:"tx",html:p4HTML(esc(it.first),esc(it.key),esc(it.second)),ans,ex});
+        else if(type==="p3"&&it.q&&it.stem)items.push({k:"tx",html:gapHTML(esc(it.q))+` <span class="kw">${esc(it.stem)}</span>`,ans,ex});
+        else if(it.q)items.push({k:"tx",html:gapHTML(esc(it.q)),ans,ex})}
+    }
+    if(!items.length)throw new Error("empty");
+    const label=AIT.find(t=>t[0]===type)[1]+(g?" · "+g[1]:"");
+    const sess={title:data.title?esc(data.title):label,items,re:{src:"ai",type,topic},multi:type==="p4"};
+    if(type==="read"&&data.passage)sess.passage=esc(data.passage);
+    if(type==="listen"&&data.script)sess.script=esc(data.script);
+    startSession(sess);
+  }catch(err){
+    if(stat){stat.hidden=false;stat.textContent=err&&err.code==="rate_limited"?"Priveľa požiadaviek naraz. Skús to o chvíľu.":err&&err.code==="not_granted"?"Stránka nemá povolenie pýtať sa Clauda. Povolíš ho v ponuke Permissions pri artifacte.":"Cvičenie sa nepodarilo vytvoriť. Skús to ešte raz."}
+    if(btn)btn.disabled=false;
+  }
+}
+function syncAI(){$$("[data-feedback],[data-spfb]").forEach(b=>b.hidden=false);const b=$("[data-startai]");if(b){b.disabled=false;const n=$("#ainote");if(n)n.hidden=true}}
+async function askFeedback(btn,out,prompt){
+  btn.disabled=true;out.hidden=false;out.textContent="Claude číta tvoj text…";
+  try{const r=await sampleFn(prompt,{cache:false,onText:({text})=>{out.textContent=text}});out.textContent=r.text}
+  catch(err){out.textContent=err&&err.code==="rate_limited"?"Priveľa požiadaviek naraz. Skús to o chvíľu.":"Spätnú väzbu sa teraz nepodarilo získať. Text si môžeš skopírovať a poslať Claudovi v chate."}
+  btn.disabled=false;
+}
+
+let sampleFn=null;
+V.pisanie=()=>{
+  const w=W.find(x=>x.id===S.wtype)||W[0],task=TASKS[S.task]||TASKS[0];
+  return `<div class="head"><span class="eyebrow">Writing · Writing reference s. 184</span><h1>Písanie</h1><p class="lead">Dva texty po 220 až 260 slov, na každý asi 45 minút. Najprv si pozri stavbu žánru, potom si vyber zadanie a píš na čas.</p></div>
+  <div class="row">${W.map(x=>`<button class="btn" data-wtype="${x.id}" aria-pressed="${x.id===w.id}">${x.t}</button>`).join("")}</div>
+  <div class="panel"><div class="row sp"><h2>${w.t}</h2><span class="pill acc">${w.part}</span></div><p><b>Štýl:</b> ${w.reg}</p>
+   <div class="grid"><div><span class="eyebrow">Stavba</span><ul class="tight" style="margin-top:8px">${w.str.map(s=>`<li>${s}</li>`).join("")}</ul></div><div><span class="eyebrow">Užitočné frázy</span><ul class="tight en" style="margin-top:8px">${w.ph.map(s=>`<li>${s}</li>`).join("")}</ul></div></div><p class="note">${w.tip}</p></div>
+  <div class="panel"><div class="row sp"><h2>Tréning na čas</h2>${timerHTML("w",2700,"45 minút na jeden text")}</div>
+   <div class="row"><label for="tasksel" class="eyebrow">Zadanie</label><select id="tasksel" class="gapin">${TASKS.map((t,i)=>`<option value="${i}" ${i===S.task?"selected":""}>${i+1}. ${W.find(x=>x.id===t[0]).t}</option>`).join("")}</select></div>
+   <div class="task">${esc(task[1])}</div>
+   <textarea id="draft" placeholder="Sem píš svoj text…" spellcheck="false">${esc(S.draft||"")}</textarea>
+   <div class="row sp"><span id="wc" class="pill"></span><span class="row"><button class="btn" data-copy>Kopírovať text</button><button class="btn pri" data-feedback hidden>Spätná väzba od Clauda</button></span></div>
+   <div id="fb" class="fb" hidden></div>
+   <div><span class="eyebrow">Kontrola pred odovzdaním</span><div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">${CHECK.map((c,i)=>`<label class="chk"><input type="checkbox" id="chk${i}" data-chk="${i}" ${S.chk[i]?"checked":""}> ${c}</label>`).join("")}</div></div>
+   <p class="note">Tip z učebnice: veď si zoznam vlastných opakovaných chýb a pred odovzdaním text skontroluj práve na ne.</p></div>`;
+};
+function wcUpdate(){const t=$("#draft"),el=$("#wc");if(!t||!el)return;const n=(t.value.trim().match(/\S+/g)||[]).length;el.textContent=n+" slov · cieľ 220–260";el.className="pill "+(n>=220&&n<=260?"ok":"");}
+
+let spPrompt=null;
+V.hovorenie=()=>`<div class="head"><span class="eyebrow">Speaking · Speaking reference s. 194</span><h1>Hovorenie</h1><p class="lead">Pätnásť minút vo dvojici, štyri časti. Vygeneruj si úlohu, spusti časovač a hovor nahlas – ideálne sa nahraj na telefón a vypočuj si to.</p></div>
+ <div class="panel"><h2>Tréning</h2><div class="row"><button class="btn" data-sp="p1">Part 1: otázka</button><button class="btn" data-sp="p2">Part 2: long turn</button><button class="btn" data-sp="p3">Part 3: spoločná úloha</button><button class="btn" data-sp="p4">Part 4: diskusia</button></div><div id="spbox">${spHTML()}</div></div>
+ <div class="grid">${SP.map(p=>`<div class="panel"><div class="row sp"><h2>${p.t}</h2><span class="pill acc">${p.time}</span></div><h3>${p.n}</h3><p>${p.d}</p><ul class="tight">${p.tips.map(t=>`<li>${t}</li>`).join("")}</ul><span class="eyebrow">Frázy</span><ul class="tight en">${p.ph.map(t=>`<li>${t}</li>`).join("")}</ul></div>`).join("")}</div>`;
+function spHTML(){
+  if(!spPrompt)return `<p class="note">Vyber časť skúšky a zobrazí sa náhodná úloha s časovačom.</p>`;
+  const cfg={p1:[30,"asi 30 sekúnd na odpoveď"],p2:[60,"presne 1 minúta"],p3:[120,"2 minúty diskusia, potom 1 minúta na rozhodnutie"],p4:[60,"asi 1 minúta na rozvinutú odpoveď"]}[spPrompt.k];
+  return `<div class="task" style="margin-top:12px">${esc(spPrompt.t)}</div><div style="margin-top:12px">${timerHTML("sp",cfg[0],cfg[1])}</div>
+  <textarea id="spans" style="min-height:120px;margin-top:12px" placeholder="Napíš sem po anglicky, čo by si povedal. Dá sa aj nadiktovať cez mikrofón na klávesnici." spellcheck="false"></textarea>
+  <div class="row" style="margin-top:8px"><button class="btn pri" data-spfb ${sampleFn?"":"hidden"}>Spätná väzba od Clauda</button></div><div id="spfb" class="fb" hidden style="margin-top:8px"></div>`;
+}
+
+V.plan=()=>`<div class="head"><span class="eyebrow">Map of the units</span><h1>Plán podľa učebnice</h1><p class="lead">Štrnásť lekcií a čo v nich nájdeš. SB je Student's Book, WB je Workbook. Po každých dvoch lekciách je v učebnici „Vocabulary and grammar review“.</p></div>
+ ${UN.map(u=>`<div class="panel"><div class="row sp"><label class="chk" style="font-size:1rem"><input type="checkbox" id="un${u[0]}" data-unit="${u[0]}" ${S.units[u[0]]?"checked":""}><h2>${u[0]}. ${u[1]}</h2></label><span class="row"><span class="pill">SB s. ${u[2]}</span><span class="pill">WB s. ${u[3]}</span></span></div>
+  <div class="scroll"><table><tbody><tr><th>Gramatika</th><td>${u[4]}</td></tr><tr><th>Slovná zásoba</th><td>${u[5]}</td></tr><tr><th>Reading &amp; UoE</th><td>${u[6]}</td></tr><tr><th>Writing</th><td>${u[7]}</td></tr><tr><th>Listening</th><td>${u[8]}</td></tr><tr><th>Speaking</th><td>${u[9]}</td></tr></tbody></table></div></div>`).join("")}
+ <p class="note">Na konci Student's Book: Language reference (s. 162), Writing reference (s. 184), Speaking reference (s. 194) a kľúč odpovedí (s. 199).</p>`;
+
+/* ===================== ROUTER ===================== */
+function route(){const r=location.hash.slice(1);return V[r]?r:"prehlad"}
+function render(keepScroll){
+  stopTimers();const r=route(),y=window.scrollY;
+  $("#nav").innerHTML=NAV.map(n=>`<a href="#${n[0]}" ${n[0]===r?'aria-current="page"':""}>${n[1]}</a>`).join("");
+  app.innerHTML=V[r]();
+  if(r==="pisanie")wcUpdate();
+  if(sampleFn)syncAI();
+  if(keepScroll)window.scrollTo(0,y);else window.scrollTo(0,0);
+  const cur=$('#nav a[aria-current]');if(cur&&cur.scrollIntoView)cur.scrollIntoView({block:"nearest",inline:"nearest"});
+}
+window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(V[h]||!h)render(false)});
+
+/* ===================== EVENTS ===================== */
+app.addEventListener("click",async e=>{
+  const t=e.target.closest("button,[data-deck]");if(!t)return;
+  // multiple choice
+  const mcEl=t.closest("[data-mc]");
+  if(mcEl&&t.classList.contains("opt")){
+    const a=+mcEl.dataset.a,i=+t.dataset.i;S.ans[mcEl.dataset.mc]={c:i,ok:i===a};save();
+    $$(".opt",mcEl).forEach((b,j)=>{b.disabled=true;if(j===a)b.classList.add("ok");else if(j===i)b.classList.add("bad")});
+    $(".ex",mcEl).hidden=false;refreshBadges();return;
+  }
+  if(t.hasAttribute("data-check")){checkText(t.closest("[data-tc]"));return}
+  if(t.dataset.reset){const p=t.dataset.reset;for(const m of [S.ans,S.txt])for(const k in m)if(k.startsWith(p))delete m[k];save();
+    const open=$$("details[open]").map(d=>d.id);render(true);open.forEach(id=>{const d=document.getElementById(id);if(d)d.open=true});return}
+  if(t.dataset.uoe){S.uoe=t.dataset.uoe;save();render(true);return}
+  // practice hub
+  if(t.dataset.pc){S.pc=t.dataset.pc;save();render(true);return}
+  if(t.dataset.pn){S.pn=+t.dataset.pn;save();render(true);return}
+  if(t.hasAttribute("data-startbank")){startBank(S.pc,S.pn);return}
+  if(t.hasAttribute("data-startai")){genAI(S.aitype,S.aitopic);return}
+  if(t.hasAttribute("data-again")){const re=S.sess&&S.sess.re;if(!re)return;if(re.src==="bank")startBank(re.cat,re.n);else if(sampleFn){t.disabled=true;t.textContent="Claude píše cvičenie…";genAI(re.type,re.topic).then(()=>{t.disabled=false;t.textContent="Ďalšie také cvičenie"})}return}
+  if(t.hasAttribute("data-closesess")){clearX();S.sess=null;save();if(ttsFn)try{ttsFn.stop()}catch(_){}render(true);return}
+  if(t.hasAttribute("data-play")){const st=$("#playstat");if(!ttsFn||!S.sess)return;const raw=$("#script").textContent.slice(0,2000);st.textContent="Prehráva sa nahrávka…";ttsFn.speak(raw,{language:"en"}).then(()=>{st.textContent="Nahrávka skončila. Môžeš si ju pustiť ešte raz."}).catch(err=>{st.textContent=err&&err.code==="not_granted"?"Prehrávanie hlasu nie je povolené. Otvor si prepis.":"Prehrávanie sa zastavilo."});return}
+  if(t.hasAttribute("data-stopplay")){if(ttsFn)try{ttsFn.stop()}catch(_){}return}
+  if(t.hasAttribute("data-script")){const sc=$("#script");sc.hidden=!sc.hidden;t.textContent=sc.hidden?"Zobraziť prepis":"Skryť prepis";return}
+  if(t.hasAttribute("data-spfb")){spFeedback(t);return}
+  // vocab
+  if(t.dataset.deck){deckId=t.dataset.deck;fc={i:0,flip:false};quiz=null;typing=null;render(true);const el=$("#deck");if(el)el.scrollIntoView({behavior:"smooth",block:"nearest"});return}
+  const d=D.find(x=>x.id===deckId);
+  const redeck=()=>{$("#deck").innerHTML=deckHTML()};
+  if(t.hasAttribute("data-flip")){fc.flip=!fc.flip;redeck();return}
+  if(t.hasAttribute("data-fprev")){fc.i=(fc.i-1+d.cards.length)%d.cards.length;fc.flip=false;redeck();return}
+  if(t.dataset.fknow){const k=d.id+"."+fc.i;if(t.dataset.fknow==="1")S.known[k]=1;else delete S.known[k];save();fc.i=(fc.i+1)%d.cards.length;fc.flip=false;redeck();return}
+  if(t.hasAttribute("data-quiz")){typing=null;quiz=makeQuiz(d);redeck();return}
+  if(t.hasAttribute("data-fcmode")){quiz=null;typing=null;redeck();return}
+  if(t.hasAttribute("data-typing")){quiz=null;typing=makeTyping(d);redeck();const i=$("#tin");if(i)i.focus();return}
+  if(t.hasAttribute("data-tcheck")){typingCheck();return}
+  if(t.hasAttribute("data-tnext")){typingNext();return}
+  if(t.hasAttribute("data-thint")){typing.hint=true;const v=$("#tin").value;redeck();const i=$("#tin");i.value=v;i.focus();return}
+  if(t.dataset.qi!==undefined&&quiz){quiz.ch=+t.dataset.qi;if(quiz.ch===quiz.qs[quiz.pos].a)quiz.score++;redeck();return}
+  if(t.hasAttribute("data-qnext")&&quiz){quiz.pos++;quiz.ch=null;redeck();return}
+  // writing
+  if(t.dataset.wtype){S.wtype=t.dataset.wtype;save();render(true);return}
+  if(t.hasAttribute("data-copy")){const ta=$("#draft");try{await navigator.clipboard.writeText(ta.value);t.textContent="Skopírované"}catch(_){ta.select()}return}
+  if(t.hasAttribute("data-feedback")){feedback(t);return}
+  // speaking
+  if(t.dataset.sp){const k=t.dataset.sp,a=SPQ[k];let n;do{n=a[Math.floor(Math.random()*a.length)]}while(spPrompt&&n===spPrompt.t&&a.length>1);spPrompt={k,t:n};stopTimers();$("#spbox").innerHTML=spHTML();return}
+  // timers
+  const tm=t.closest("[data-timer]");
+  if(tm){const id=tm.dataset.timer,total=+tm.dataset.sec,out=$("#t-"+id);
+    if(t.hasAttribute("data-treset")){if(timers[id]){clearInterval(timers[id].h);delete timers[id]}out.textContent=fmt(total);$("[data-tstart]",tm).textContent="Štart";out.style.color="";return}
+    if(t.hasAttribute("data-tstart")){
+      if(timers[id]&&timers[id].run){clearInterval(timers[id].h);timers[id].run=false;t.textContent="Pokračovať";return}
+      const st=timers[id]||(timers[id]={left:total});if(st.left<=0)st.left=total;st.run=true;t.textContent="Pauza";out.style.color="";
+      st.h=setInterval(()=>{st.left--;out.textContent=fmt(Math.max(st.left,0));if(st.left<=0){clearInterval(st.h);st.run=false;out.style.color="var(--bad)";out.textContent="00:00 · čas vypršal";t.textContent="Štart"}},1000);}
+  }
+});
+function checkText(box){
+  if(!box)return;const key=box.dataset.tc,answers=box.dataset.ans.split("|"),inp=$("input",box),v=inp.value;if(!v.trim())return;
+  const ok=answers.includes(norm(v));S.txt[key]={v,ok};save();
+  inp.classList.toggle("ok",ok);inp.classList.toggle("bad",!ok);
+  const res=$(".res",box);
+  res.innerHTML=resText(ok,answers,box.dataset.note||"");res.className="res "+(ok?"ok":"bad");res.hidden=false;refreshBadges();
+}
+app.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="tin"){e.preventDefault();typingCheck();return}if(e.key==="Enter"&&e.target.classList.contains("gapin")&&e.target.tagName==="INPUT")checkText(e.target.closest("[data-tc]"))});
+app.addEventListener("input",e=>{if(e.target.id==="draft"){S.draft=e.target.value;save();wcUpdate()}});
+app.addEventListener("change",e=>{const t=e.target;
+  if(t.id==="tasksel"){S.task=+t.value;S.wtype=TASKS[S.task][0];save();render(true)}
+  if(t.id==="aitype"){S.aitype=t.value;save();render(true)}
+  if(t.id==="aitopic"){S.aitopic=t.value;save()}
+  if(t.dataset.chk!==undefined){S.chk[t.dataset.chk]=t.checked;save()}
+  if(t.dataset.unit){S.units[t.dataset.unit]=t.checked;save()}
+});
+
+async function feedback(btn){
+  const text=($("#draft").value||"").trim(),out=$("#fb");out.hidden=false;
+  if(text.split(/\s+/).length<60){out.textContent="Napíš aspoň 60 slov, aby mala spätná väzba zmysel.";return}
+  const task=TASKS[S.task],words=(text.match(/\S+/g)||[]).length;
+  const prompt=`Si skúsený examinátor Cambridge C1 Advanced (CAE) Writing. Ohodnoť text kandidáta. Odpovedaj po slovensky, anglické citácie nechaj v angličtine. Píš obyčajný text bez markdownu a bez hviezdičiek.\n\nŽáner: ${task[0]}\nZadanie:\n${task[1]}\n\nText kandidáta (${words} slov; požadovaný rozsah je 220–260):\n"""\n${text}\n"""\n\nŠtruktúra odpovede:\n1) Hodnotenie 0–5 za Content, Communicative Achievement, Organisation a Language, ku každému jedna až dve vety zdôvodnenia.\n2) Najviac päť konkrétnych chýb vo formáte: pôvodná formulácia → oprava (krátke vysvetlenie).\n3) Tri návrhy, ako text posunúť na úroveň C1: pokročilejšia slovná zásoba, spojovacie výrazy alebo štruktúry ako inverzia, cleft sentences, participle clauses.\n4) Jedna veta o tom, či by text na skúške pravdepodobne obstál.`;
+  await askFeedback(btn,out,prompt);
+}
+async function spFeedback(btn){
+  const text=($("#spans").value||"").trim(),out=$("#spfb");out.hidden=false;
+  if(!spPrompt||text.split(/\s+/).length<15){out.textContent="Napíš aspoň pár viet, aby mala spätná väzba zmysel.";return}
+  const part={p1:"Part 1 (interview)",p2:"Part 2 (long turn, 1 minute)",p3:"Part 3 (collaborative task)",p4:"Part 4 (discussion)"}[spPrompt.k];
+  const prompt=`Si skúsený examinátor Cambridge C1 Advanced (CAE) Speaking. Kandidát si písomne zapísal, čo by povedal. Odpovedaj po slovensky, anglické citácie nechaj v angličtine. Píš obyčajný text bez markdownu a bez hviezdičiek.\n\nČasť skúšky: ${part}\nÚloha:\n${spPrompt.t}\n\nOdpoveď kandidáta:\n"""\n${text}\n"""\n\nŠtruktúra odpovede:\n1) Krátke hodnotenie: Grammatical Resource, Lexical Resource, Discourse Management (pri Part 3 aj Interactive Communication). Výslovnosť nehodnoť.\n2) Najviac štyri chyby vo formáte: pôvodná formulácia → oprava.\n3) Tri frázy alebo štruktúry úrovne C1, ktoré by sa do odpovede hodili.\n4) Vzorová odpoveď v angličtine, asi 90 slov.`;
+  await askFeedback(btn,out,prompt);
+}
+if(window.claude&&window.claude.use){
+  window.claude.use("sample").then(s=>{if(!s)return;sampleFn=s;syncAI()}).catch(()=>{});
+  window.claude.use("tts").then(t=>{if(!t)return;ttsFn=t;if(route()==="cvicenia"&&!S.sess)render(true)}).catch(()=>{});
+}
+
+render(false);
+</script>
+</body>
+</html>
